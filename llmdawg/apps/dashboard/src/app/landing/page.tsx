@@ -1273,24 +1273,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── STATS ─────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 border-y border-white/[0.06]">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: 50, suffix: "M+", label: "spans traced" },
-            { value: 12, suffix: "k+", label: "developers" },
-            { value: 99, suffix: ".9%", label: "capture rate" },
-            { value: 2, suffix: " min", label: "avg setup time" },
-          ].map((s) => (
-            <div key={s.label}>
-              <div className="text-4xl font-black text-white mb-1">
-                <Counter to={s.value} suffix={s.suffix} />
-              </div>
-              <div className="text-sm text-zinc-600">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ── PRICING ───────────────────────────────────────────────────────── */}
       <section id="pricing" className="py-28 px-6">
@@ -1408,48 +1390,6 @@ export default function LandingPage() {
                 >
                   {plan.cta}
                 </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ──────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote:
-                  "We were spending $4k/month on OpenAI and had no idea where it was going. WhyLLM found three features burning 60% of our budget in under an hour.",
-                author: "CTO, B2B SaaS startup",
-                handle: "@_cto",
-              },
-              {
-                quote:
-                  "Every tool I tried needed hours of instrumentation. WhyLLM ran python app.py and I had a full dashboard. Genuinely can't explain how it works.",
-                author: "ML Engineer",
-                handle: "@ml_eng",
-              },
-              {
-                quote:
-                  "The hallucination detection alone is worth it. Caught a 14% hallucination rate on our RAG pipeline that we had no idea about. Our users would've noticed before us.",
-                author: "Staff Engineer",
-                handle: "@staff_eng",
-              },
-            ].map((t) => (
-              <div
-                key={t.handle}
-                className="rounded-2xl border border-white/[0.07] p-6"
-                style={{ background: "rgba(255,255,255,0.02)" }}
-              >
-                <p className="text-zinc-300 text-sm leading-relaxed mb-5">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div>
-                  <div className="text-white text-sm font-semibold">{t.author}</div>
-                  <div className="text-zinc-600 text-xs">{t.handle}</div>
-                </div>
               </div>
             ))}
           </div>
