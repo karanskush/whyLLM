@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llmdawg-api"
+version = "0.1.0"
+description = "LLMDawg — FastAPI ingest, query, and proxy API"
+requires-python = ">=3.11"
+dependencies = [
+    # Web framework
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.32.1",
+    "starlette==0.41.3",
+
+    # Database — async SQLAlchemy + asyncpg driver
+    "sqlalchemy[asyncio]==2.0.36",
+    "asyncpg==0.30.0",
+    "alembic==1.14.0",
+
+    # Validation & settings
+    "pydantic==2.10.3",
+    "pydantic-settings==2.7.0",
+    "email-validator==2.2.0",
+
+    # HTTP client (for proxy + outbound calls)
+    "httpx==0.28.1",
+
+    # Redis — async client
+    "redis[asyncio]==5.2.1",
+
+    # Auth — JWT + password hashing
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+
+    # LLM token counting
+    "tiktoken==0.8.0",
+
+    # Anthropic SDK (for hallucination judge)
+    "anthropic==0.42.0",
+
+    # Background job queue
+    "arq==0.26.1",
+
+    # Utilities
+    "python-multipart==0.0.20",
+    "orjson==3.10.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "httpx==0.28.1",
+    "respx==0.21.1",
+    "anyio[trio]==4.7.0",
+    "ruff==0.8.4",
+    "mypy==1.13.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llmdawg_api"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+
+[tool.ruff.isort]
+known-first-party = ["llmdawg_api"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+testpaths = ["tests"]

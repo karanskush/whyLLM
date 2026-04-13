@@ -1,0 +1,107 @@
+networks:
+  llmdawg_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - llmdawg_network
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: llmdawg
+      POSTGRES_PASSWORD: llmdawg
+      POSTGRES_DB: llmdawg
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llmdawg -d llmdawg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - llmdawg_network
+    ports:
+      - "16379:6379"
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - llmdawg_network
+    ports:
+      - "17823:8000"
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://llmdawg:llmdawg@postgres:5432/llmdawg
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  dashboard:
+    build:
+      context: ../apps/dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - llmdawg_network
+    ports:
+      - "14392:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8000
+      NEXTAUTH_URL: http://localhost:14392
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    command: python -m llmdawg_api.worker
+    restart: unless-stopped
+    networks:
+      - llmdawg_network
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://llmdawg:llmdawg@postgres:5432/llmdawg
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
