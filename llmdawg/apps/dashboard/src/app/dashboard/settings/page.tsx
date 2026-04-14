@@ -23,15 +23,14 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("api-keys");
   const { projectId } = useProject();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const token = (session as any)?.accessToken as string | undefined;
+  const token = session?.accessToken as string | undefined;
 
   if (!token || !projectId) {
     return (
       <div>
         <Topbar title="Settings" />
         <div className="p-6">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-zinc-500">
             <Settings className="w-4 h-4" />
             Loading session…
           </div>
@@ -46,7 +45,7 @@ export default function SettingsPage() {
 
       <div className="p-6">
         {/* Tab bar */}
-        <div className="flex gap-1 border-b border-gray-200 mb-6">
+        <div className="flex gap-1 border-b border-zinc-800 mb-6">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -54,8 +53,8 @@ export default function SettingsPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
                 activeTab === id
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                  ? "border-lime-500 text-lime-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300 hover:border-zinc-700",
               )}
             >
               <Icon className="w-4 h-4" />
@@ -64,17 +63,10 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        {/* Tab content */}
         <div>
-          {activeTab === "api-keys" && (
-            <ApiKeysTab projectId={projectId} token={token} />
-          )}
-          {activeTab === "budgets" && (
-            <BudgetsTab projectId={projectId} token={token} />
-          )}
-          {activeTab === "alerts" && (
-            <AlertsTab projectId={projectId} token={token} />
-          )}
+          {activeTab === "api-keys" && <ApiKeysTab projectId={projectId} token={token} />}
+          {activeTab === "budgets" && <BudgetsTab projectId={projectId} token={token} />}
+          {activeTab === "alerts" && <AlertsTab projectId={projectId} token={token} />}
         </div>
       </div>
     </div>

@@ -40,15 +40,17 @@ export function Sidebar() {
   const isAdmin = session?.isAdmin;
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-gray-900 text-gray-100 px-4 py-6">
+    <aside className="flex flex-col w-60 min-h-screen bg-zinc-900 border-r border-zinc-800 text-zinc-100 px-3 py-5">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-8 px-2">
-        <Zap className="w-6 h-6 text-indigo-400" />
-        <span className="text-lg font-bold tracking-tight">whyLLM</span>
+      <div className="flex items-center gap-2 mb-8 px-3">
+        <div className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center flex-shrink-0">
+          <Zap className="w-4 h-4 text-black" />
+        </div>
+        <span className="text-base font-bold tracking-tight text-white">whyLLM</span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
@@ -58,11 +60,11 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                  ? "bg-zinc-800 text-white"
+                  : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100",
               )}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
+              <Icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-lime-400")} />
               {label}
             </Link>
           );
@@ -71,12 +73,12 @@ export function Sidebar() {
 
       {/* Admin — only visible to admins */}
       {isAdmin && (
-        <div className="mt-6 mb-2">
-          <p className="px-3 mb-1 text-xs font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+        <div className="mt-5 mb-1">
+          <p className="px-3 mb-1 text-[10px] font-semibold text-lime-500 uppercase tracking-widest flex items-center gap-1.5">
             <ShieldCheck className="w-3 h-3" />
             Admin
           </p>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {ADMIN_ITEMS.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href || pathname.startsWith(href + "/");
               return (
@@ -86,11 +88,11 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100",
                   )}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <Icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-lime-400")} />
                   {label}
                 </Link>
               );
@@ -100,11 +102,11 @@ export function Sidebar() {
       )}
 
       {/* Help */}
-      <div className="mt-6 mb-2">
-        <p className="px-3 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <div className="mt-5 mb-1">
+        <p className="px-3 mb-1 text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
           Help
         </p>
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {HELP_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
@@ -114,11 +116,11 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100",
                 )}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-lime-400")} />
                 {label}
               </Link>
             );
@@ -129,9 +131,9 @@ export function Sidebar() {
       {/* Sign out */}
       <button
         onClick={() => signOut({ callbackUrl: "/login" })}
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors mt-4"
+        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300 transition-colors mt-4"
       >
-        <LogOut className="w-4 h-4" />
+        <LogOut className="w-4 h-4 flex-shrink-0" />
         Sign out
       </button>
     </aside>

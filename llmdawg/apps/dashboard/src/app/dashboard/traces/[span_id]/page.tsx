@@ -24,12 +24,12 @@ import { cn } from "@/lib/utils";
 function StatusBadge({ status }: { status: string }) {
   const color =
     status === "success"
-      ? "bg-green-100 text-green-700"
+      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
       : status === "error"
-        ? "bg-red-100 text-red-700"
-        : "bg-yellow-100 text-yellow-700";
+        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+        : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
   return (
-    <span className={cn("px-2 py-1 rounded-full text-xs font-medium", color)}>
+    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", color)}>
       {status}
     </span>
   );
@@ -47,11 +47,11 @@ function MetricChip({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-      <Icon className="w-4 h-4 text-gray-400" />
+    <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5">
+      <Icon className="w-4 h-4 text-zinc-500" />
       <div>
-        <div className="text-xs text-gray-400">{label}</div>
-        <div className="text-sm font-semibold text-gray-800">{value}</div>
+        <div className="text-xs text-zinc-500">{label}</div>
+        <div className="text-sm font-semibold text-zinc-200">{value}</div>
       </div>
     </div>
   );
@@ -71,20 +71,20 @@ function JsonViewer({
   if (!data) return null;
 
   return (
-    <div className="border border-gray-100 rounded-lg overflow-hidden">
+    <div className="border border-zinc-800 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-700"
+        className="w-full flex items-center justify-between px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 text-sm font-medium text-zinc-300 transition-colors"
       >
         <span>{label}</span>
         {open ? (
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-4 h-4 text-zinc-500" />
         ) : (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 text-zinc-500" />
         )}
       </button>
       {open && (
-        <pre className="p-4 text-xs font-mono text-gray-600 bg-white overflow-x-auto max-h-96">
+        <pre className="p-4 text-xs font-mono text-zinc-400 bg-zinc-950 overflow-x-auto max-h-96">
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
@@ -121,8 +121,8 @@ function GanttTimeline({
   const traceDuration = Math.max(traceEnd - traceStart, 1);
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+      <h3 className="text-sm font-semibold text-zinc-300 mb-3">
         Trace Timeline ({allSpans.length} spans)
       </h3>
       <div className="space-y-2">
@@ -144,18 +144,18 @@ function GanttTimeline({
 
             return (
               <div key={s.id} className="flex items-center gap-3">
-                <div className="w-24 text-xs text-gray-400 truncate text-right flex-shrink-0">
+                <div className="w-24 text-xs text-zinc-500 truncate text-right flex-shrink-0">
                   {s.model.split("-").slice(-2).join("-")}
                 </div>
-                <div className="flex-1 relative h-6 bg-gray-100 rounded">
+                <div className="flex-1 relative h-6 bg-zinc-800 rounded">
                   <div
                     className={cn(
                       "absolute top-1 h-4 rounded",
                       isCurrent
-                        ? "bg-indigo-500"
+                        ? "bg-lime-500"
                         : s.status === "error"
-                          ? "bg-red-400"
-                          : "bg-indigo-200",
+                          ? "bg-red-500/60"
+                          : "bg-zinc-600",
                     )}
                     style={{
                       left: `${Math.min(leftPct, 99)}%`,
@@ -163,14 +163,14 @@ function GanttTimeline({
                     }}
                   />
                 </div>
-                <div className="w-16 text-xs text-gray-400 flex-shrink-0">
+                <div className="w-16 text-xs text-zinc-500 flex-shrink-0">
                   {s.latency_ms !== null ? `${s.latency_ms}ms` : "—"}
                 </div>
               </div>
             );
           })}
       </div>
-      <div className="flex justify-between mt-2 text-xs text-gray-300">
+      <div className="flex justify-between mt-2 text-xs text-zinc-700">
         <span>0ms</span>
         <span>{traceDuration}ms</span>
       </div>
@@ -205,8 +205,8 @@ function FeedbackPanel({
   });
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Feedback</h3>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+      <h3 className="text-sm font-semibold text-zinc-300 mb-3">Feedback</h3>
       <div className="flex items-center gap-2">
         {(
           [
@@ -222,8 +222,8 @@ function FeedbackPanel({
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors",
               selected === value
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600",
+                ? "bg-lime-500 text-black border-lime-500"
+                : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-zinc-600 hover:text-zinc-200",
             )}
           >
             <Icon className="w-3.5 h-3.5" />
@@ -237,7 +237,7 @@ function FeedbackPanel({
           onChange={(e) => setNote(e.target.value)}
           placeholder="Add a note (optional)…"
           maxLength={500}
-          className="mt-2 w-full text-xs border border-gray-200 rounded p-2 resize-none h-16 focus:outline-none focus:border-indigo-400"
+          className="mt-2 w-full text-xs bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-zinc-300 placeholder:text-zinc-600 resize-none h-16 focus:outline-none focus:border-zinc-600 transition-colors"
         />
       )}
     </div>
@@ -262,7 +262,7 @@ export default function SpanDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-sm text-gray-400">
+      <div className="flex items-center justify-center min-h-screen bg-zinc-950 text-sm text-zinc-500">
         Loading span…
       </div>
     );
@@ -270,13 +270,13 @@ export default function SpanDetailPage() {
 
   if (isError || !span) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-zinc-950">
         <div className="text-center">
           <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Span not found</p>
+          <p className="text-sm text-zinc-500">Span not found</p>
           <button
             onClick={() => router.push("/dashboard/traces")}
-            className="mt-3 text-sm text-indigo-600 hover:underline"
+            className="mt-3 text-sm text-lime-400 hover:text-lime-300 transition-colors"
           >
             Back to Traces
           </button>
@@ -288,24 +288,24 @@ export default function SpanDetailPage() {
   const existingFeedback = span.tags?._feedback as string | undefined;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-zinc-950">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/dashboard/traces")}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+            className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-sm text-gray-800">
+              <span className="font-mono text-sm text-zinc-300">
                 {span.id}
               </span>
               <StatusBadge status={span.status} />
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               {span.provider} · {span.model} ·{" "}
               {span.started_at
                 ? new Date(span.started_at).toLocaleString()
@@ -347,27 +347,27 @@ export default function SpanDetailPage() {
         </div>
 
         {/* Token counts */}
-        <div className="flex gap-4 text-sm text-gray-600 bg-white border border-gray-100 rounded-xl p-4">
+        <div className="flex gap-4 text-sm text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <span>
-            <span className="text-gray-400 text-xs">Input</span>{" "}
-            <strong>{span.input_tokens?.toLocaleString() ?? "—"}</strong>
+            <span className="text-zinc-600 text-xs">Input</span>{" "}
+            <strong className="text-zinc-200">{span.input_tokens?.toLocaleString() ?? "—"}</strong>
           </span>
-          <span className="text-gray-300">·</span>
+          <span className="text-zinc-700">·</span>
           <span>
-            <span className="text-gray-400 text-xs">Output</span>{" "}
-            <strong>{span.output_tokens?.toLocaleString() ?? "—"}</strong>
+            <span className="text-zinc-600 text-xs">Output</span>{" "}
+            <strong className="text-zinc-200">{span.output_tokens?.toLocaleString() ?? "—"}</strong>
           </span>
-          <span className="text-gray-300">·</span>
+          <span className="text-zinc-700">·</span>
           <span>
-            <span className="text-gray-400 text-xs">Total</span>{" "}
-            <strong>{span.total_tokens?.toLocaleString() ?? "—"}</strong>
+            <span className="text-zinc-600 text-xs">Total</span>{" "}
+            <strong className="text-zinc-200">{span.total_tokens?.toLocaleString() ?? "—"}</strong>
           </span>
           {span.environment && (
             <>
-              <span className="text-gray-300">·</span>
+              <span className="text-zinc-700">·</span>
               <span>
-                <span className="text-gray-400 text-xs">Env</span>{" "}
-                <strong>{span.environment}</strong>
+                <span className="text-zinc-600 text-xs">Env</span>{" "}
+                <strong className="text-zinc-200">{span.environment}</strong>
               </span>
             </>
           )}
@@ -375,24 +375,24 @@ export default function SpanDetailPage() {
 
         {/* Error details */}
         {span.error_type && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm">
-            <p className="font-semibold text-red-700 mb-1">{span.error_type}</p>
-            <p className="text-red-600 font-mono text-xs">{span.error_message}</p>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm">
+            <p className="font-semibold text-red-400 mb-1">{span.error_type}</p>
+            <p className="text-red-400/80 font-mono text-xs">{span.error_message}</p>
           </div>
         )}
 
         {/* Hallucination flags */}
         {span.hallucination_flags &&
           Object.keys(span.hallucination_flags).length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <p className="text-xs font-semibold text-yellow-700 mb-2">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+              <p className="text-xs font-semibold text-amber-400 mb-2">
                 Hallucination Signals
               </p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(span.hallucination_flags).map(([k, v]) => (
                   <span
                     key={k}
-                    className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs"
+                    className="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded-full text-xs border border-amber-500/20"
                   >
                     {k}: {(v as number).toFixed(2)}
                   </span>
@@ -401,7 +401,7 @@ export default function SpanDetailPage() {
             </div>
           )}
 
-        {/* Trace Gantt (only when there are siblings) */}
+        {/* Trace Gantt */}
         {span.siblings.length > 0 && (
           <GanttTimeline span={span} siblings={span.siblings} />
         )}

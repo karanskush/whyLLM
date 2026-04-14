@@ -48,20 +48,20 @@ function AddClientModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-md p-6">
         {!created ? (
           <>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-gray-900">Onboard New Client</h2>
-              <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-                <X className="w-4 h-4 text-gray-500" />
+              <h2 className="text-base font-semibold text-white">Onboard New Client</h2>
+              <button onClick={onClose} className="p-1 rounded hover:bg-zinc-800 transition-colors">
+                <X className="w-4 h-4 text-zinc-500" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">
                   Client / Organization name
                 </label>
                 <input
@@ -69,11 +69,11 @@ function AddClientModal({
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="e.g. Acme Corp"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">
                   Project name
                 </label>
                 <input
@@ -81,27 +81,29 @@ function AddClientModal({
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="e.g. Production API"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
                   onKeyDown={(e) => e.key === "Enter" && mutation.mutate()}
                 />
               </div>
             </div>
 
             {error && (
-              <p className="mt-3 text-sm text-red-600">{error}</p>
+              <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-sm text-red-400">
+                {error}
+              </div>
             )}
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={onClose}
-                className="flex-1 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="flex-1 py-2 rounded-lg border border-zinc-700 text-sm font-medium text-zinc-400 hover:bg-zinc-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => mutation.mutate()}
                 disabled={!orgName.trim() || !projectName.trim() || mutation.isPending}
-                className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 py-2 rounded-lg bg-lime-500 text-black text-sm font-semibold hover:bg-lime-400 disabled:opacity-50 transition-colors"
               >
                 {mutation.isPending ? "Creating…" : "Onboard Client"}
               </button>
@@ -110,39 +112,39 @@ function AddClientModal({
         ) : (
           <>
             <div className="flex items-center gap-2 mb-1">
-              <Check className="w-4 h-4 text-emerald-500" />
-              <h2 className="text-base font-semibold text-gray-900">Client onboarded</h2>
+              <Check className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-base font-semibold text-white">Client onboarded</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
-              <span className="font-medium text-gray-800">{created.org_name}</span>
+            <p className="text-sm text-zinc-400 mb-4">
+              <span className="font-medium text-zinc-200">{created.org_name}</span>
               {" / "}
-              <span className="font-medium text-gray-800">{created.project_name}</span>
+              <span className="font-medium text-zinc-200">{created.project_name}</span>
             </p>
 
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+            <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-4">
               Share this key with the client. It will never be shown again.
             </p>
 
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-6">
-              <code className="flex-1 font-mono text-xs text-gray-800 break-all">
+            <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 mb-6">
+              <code className="flex-1 font-mono text-xs text-zinc-300 break-all">
                 {created.api_key}
               </code>
               <button
                 onClick={copy}
-                className="flex-shrink-0 p-1 rounded hover:bg-gray-200"
+                className="flex-shrink-0 p-1 rounded hover:bg-zinc-700 transition-colors"
                 title="Copy key"
               >
                 {copied ? (
-                  <Check className="w-4 h-4 text-emerald-500" />
+                  <Check className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  <Copy className="w-4 h-4 text-gray-500" />
+                  <Copy className="w-4 h-4 text-zinc-500" />
                 )}
               </button>
             </div>
 
             <button
               onClick={onClose}
-              className="w-full py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className="w-full py-2 rounded-lg bg-lime-500 text-black text-sm font-semibold hover:bg-lime-400 transition-colors"
             >
               Done
             </button>
@@ -159,22 +161,22 @@ function StatCard({
   label,
   value,
   icon: Icon,
-  color,
+  iconBg,
 }: {
   label: string;
   value: string;
   icon: React.ElementType;
-  color: string;
+  iconBg: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-500">{label}</span>
-        <div className={cn("p-2 rounded-lg", color)}>
-          <Icon className="w-4 h-4 text-white" />
+        <span className="text-sm font-medium text-zinc-500">{label}</span>
+        <div className={cn("p-2 rounded-lg", iconBg)}>
+          <Icon className="w-4 h-4" />
         </div>
       </div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-2xl font-bold text-white">{value}</div>
     </div>
   );
 }
@@ -188,7 +190,6 @@ export default function AdminPage() {
   const token = session?.accessToken as string | undefined;
   const isAdmin = session?.isAdmin;
 
-  // Redirect non-admins away once session is loaded
   if (status !== "loading" && !isAdmin) {
     redirect("/dashboard");
   }
@@ -220,7 +221,7 @@ export default function AdminPage() {
     return (
       <div className="p-6 space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+          <div key={i} className="h-12 bg-zinc-800 rounded animate-pulse" />
         ))}
       </div>
     );
@@ -231,12 +232,12 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Clients</h1>
-          <p className="text-sm text-gray-500">All organizations and their projects</p>
+          <h1 className="text-lg font-bold text-white">Clients</h1>
+          <p className="text-sm text-zinc-500">All organizations and their projects</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-lime-500 text-black text-sm font-semibold rounded-lg hover:bg-lime-400 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Onboard Client
@@ -249,29 +250,29 @@ export default function AdminPage() {
           label="Total Clients"
           value={isLoading ? "…" : activeClients.toLocaleString()}
           icon={Activity}
-          color="bg-indigo-500"
+          iconBg="bg-lime-500/10 text-lime-400"
         />
         <StatCard
           label="Total Spans"
           value={isLoading ? "…" : totalSpans.toLocaleString()}
           icon={Clock}
-          color="bg-violet-500"
+          iconBg="bg-violet-500/10 text-violet-400"
         />
         <StatCard
           label="Total Cost"
           value={isLoading ? "…" : formatCost(totalCost)}
           icon={DollarSign}
-          color="bg-emerald-500"
+          iconBg="bg-emerald-500/10 text-emerald-400"
         />
       </div>
 
       {/* Projects table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-zinc-800">
+          <h2 className="text-sm font-semibold text-white">
             All Projects{" "}
             {!isLoading && (
-              <span className="ml-1 text-gray-400 font-normal">({rows.length})</span>
+              <span className="ml-1 text-zinc-500 font-normal">({rows.length})</span>
             )}
           </h2>
         </div>
@@ -279,63 +280,63 @@ export default function AdminPage() {
         {isLoading ? (
           <div className="p-6 space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-zinc-800 rounded animate-pulse" />
             ))}
           </div>
         ) : error ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-red-500">Failed to load projects.</p>
+            <p className="text-sm text-red-400">Failed to load projects.</p>
           </div>
         ) : rows.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-gray-400">No clients yet. Onboard your first client.</p>
+            <p className="text-sm text-zinc-500">No clients yet. Onboard your first client.</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <tr className="border-b border-zinc-800 bg-zinc-800/50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Client
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Project
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Spans
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Cost
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Last Active
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Created
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-zinc-800">
               {rows.map((row: AdminProjectRow) => (
-                <tr key={row.project_id} className="hover:bg-gray-50 transition-colors">
+                <tr key={row.project_id} className="hover:bg-zinc-800/40 transition-colors">
                   <td className="px-5 py-3.5">
-                    <span className="font-medium text-gray-900">{row.org_name}</span>
+                    <span className="font-medium text-white">{row.org_name}</span>
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-700">{row.project_name}</span>
-                      <span className="font-mono text-xs text-gray-400">{row.project_slug}</span>
+                      <span className="text-zinc-300">{row.project_name}</span>
+                      <span className="font-mono text-xs text-zinc-600">{row.project_slug}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-right tabular-nums text-gray-600">
+                  <td className="px-5 py-3.5 text-right tabular-nums text-zinc-400">
                     {row.span_count.toLocaleString()}
                   </td>
-                  <td className="px-5 py-3.5 text-right tabular-nums text-gray-600">
+                  <td className="px-5 py-3.5 text-right tabular-nums text-zinc-400">
                     {formatCost(row.total_cost_usd)}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-gray-500">
+                  <td className="px-5 py-3.5 text-right text-zinc-500">
                     {formatDate(row.last_active_at)}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-gray-500">
+                  <td className="px-5 py-3.5 text-right text-zinc-500">
                     {formatDate(row.created_at)}
                   </td>
                 </tr>
