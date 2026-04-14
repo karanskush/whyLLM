@@ -32,6 +32,7 @@ class UserResponse(BaseModel):
     name: Optional[str]
     org_id: Optional[uuid.UUID]
     org_name: Optional[str]
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 

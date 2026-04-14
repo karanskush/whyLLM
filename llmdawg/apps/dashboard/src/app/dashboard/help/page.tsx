@@ -117,7 +117,7 @@ export default function OnboardingGuidePage() {
             </span>
           </div>
           <p className="text-sm text-indigo-800">
-            WhyLLM sits between your app and OpenAI / Anthropic. Every LLM call
+            whyLLM sits between your app and OpenAI / Anthropic. Every LLM call
             flows through us — you get full visibility into tokens, cost, latency,
             and errors without changing a single line of your application code.
           </p>
@@ -166,7 +166,7 @@ export default function OnboardingGuidePage() {
             >
               <p className="text-sm text-gray-600 mt-4 mb-1">
                 The OpenAI SDK reads <code className="text-xs bg-gray-100 px-1 rounded">OPENAI_BASE_URL</code> natively.
-                Point it at WhyLLM and add your project key — that's it.
+                Point it at whyLLM and add your project key — that's it.
               </p>
               <CodeBlock
                 lang="bash"
@@ -177,7 +177,7 @@ export WHYLLM_API_KEY=ld-prod_your_key_here
 python app.py`}
               />
               <p className="text-xs text-gray-400 mt-2">
-                WhyLLM forwards every request to OpenAI using your own OpenAI key
+                whyLLM forwards every request to OpenAI using your own OpenAI key
                 (passed in the <code>Authorization</code> header by the SDK automatically).
               </p>
             </Section>
@@ -261,7 +261,7 @@ client = anthropic.Anthropic(
             >
               <p className="text-sm text-gray-600 mt-4 mb-1">
                 If your stack already emits OpenTelemetry spans (Traceloop, OpenLLMetry,
-                LangChain, etc.), just redirect the OTLP exporter to WhyLLM:
+                LangChain, etc.), just redirect the OTLP exporter to whyLLM:
               </p>
               <CodeBlock
                 lang="bash"
@@ -269,7 +269,7 @@ client = anthropic.Anthropic(
 export OTEL_EXPORTER_OTLP_HEADERS="X-WhyLLM-Key=ld-prod_your_key_here"`}
               />
               <p className="text-xs text-gray-400 mt-2">
-                WhyLLM parses OpenAI and Anthropic semantic conventions from your existing
+                whyLLM parses OpenAI and Anthropic semantic conventions from your existing
                 spans. No new instrumentation required.
               </p>
             </Section>
@@ -310,7 +310,7 @@ resp = client.chat.completions.create(
     messages=[{"role": "user", "content": "Say hello in one word"}],
 )
 print(resp.choices[0].message.content)
-# → Now check the Traces tab in WhyLLM`}
+# → Now check the Traces tab in whyLLM`}
           />
         </div>
 
@@ -328,7 +328,7 @@ print(resp.choices[0].message.content)
             <a href="/dashboard/settings" className="text-indigo-600 hover:underline font-medium">
               Settings → Budgets
             </a>{" "}
-            and create a daily budget. When your project hits the limit, WhyLLM
+            and create a daily budget. When your project hits the limit, whyLLM
             returns <code className="text-xs bg-gray-100 px-1 rounded">HTTP 429</code> instead
             of forwarding the request — no surprise bills.
           </p>

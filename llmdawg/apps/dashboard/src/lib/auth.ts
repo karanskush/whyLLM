@@ -32,6 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             accessToken: res.access_token,
             orgId: res.user.org_id ?? undefined,
             orgName: res.user.org_name ?? undefined,
+            isAdmin: res.user.is_admin ?? false,
           };
         } catch {
           return null;
@@ -42,22 +43,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.accessToken = (user as any).accessToken;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.orgId = (user as any).orgId;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        token.orgName = (user as any).orgName;
+        token.accessToken = user.accessToken;
+        token.orgId = user.orgId;
+        token.orgName = user.orgName;
+        token.isAdmin = user.isAdmin;
       }
       return token;
     },
     async session({ session, token }) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).accessToken = token.accessToken;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).orgId = token.orgId;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (session as any).orgName = token.orgName;
+      session.accessToken = token.accessToken;
+      session.orgId = token.orgId;
+      session.orgName = token.orgName;
+      session.isAdmin = token.isAdmin;
       return session;
     },
   },

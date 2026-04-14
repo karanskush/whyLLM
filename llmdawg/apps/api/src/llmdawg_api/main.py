@@ -108,17 +108,11 @@ def create_app() -> FastAPI:
     )
 
     # ---- CORS -----------------------------------------------------------------
-    # Restrict to same-origin in production. Dev allows localhost:3000.
-    origins = (
-        [
-            "http://localhost:14392", "http://127.0.0.1:14392",
-        ]
-        if settings.is_development
-        else [settings.api_base_url]
-    )
+    # Origins come from CORS_ORIGINS env var (comma-separated).
+    # Defaults to localhost in dev; set to https://whyllm.vercel.app in prod.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -19,7 +19,7 @@ const CYCLING_PHRASES = [
   "burning money.",
   "hallucinating.",
   "flying blind.",
-  "leaking quality.",
+  "lacking quality.",
 ];
 
 function CyclingPhrase() {
@@ -80,7 +80,7 @@ function Nav() {
           <div className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center shadow-[0_0_12px_rgba(132,204,22,0.5)]">
             <span className="text-black font-black text-xs tracking-tighter">W</span>
           </div>
-          <span className="font-bold text-white text-base">WhyLLM</span>
+          <span className="font-bold text-white text-base">whyLLM</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
@@ -97,13 +97,13 @@ function Nav() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/auth/signin"
+            href="/login"
             className="text-sm text-zinc-400 hover:text-white transition-colors hidden md:block"
           >
             Sign in
           </Link>
           <Link
-            href="/auth/signup"
+            href="/register"
             className="text-sm bg-lime-500 text-black font-semibold px-4 py-2 rounded-lg hover:bg-lime-400 transition-colors duration-150"
           >
             Start free →
@@ -508,7 +508,7 @@ function DashboardMockup() {
                 fill="#84CC16"
                 fontFamily="monospace"
               >
-                WhyLLM enabled
+                whyLLM enabled
               </text>
             </svg>
           </div>
@@ -629,7 +629,7 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
       { text: "✓ llmdawg 0.4.2 installed", type: "success" },
       { text: "", type: "dim" },
       { text: "$ python app.py", type: "cmd" },
-      { text: "✓ WhyLLM connected (project: my-app)", type: "success" },
+      { text: "✓ whyLLM connected (project: my-app)", type: "success" },
       { text: "✓ Tracing 2 integrations: openai, anthropic", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -652,7 +652,7 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
       { text: "", type: "dim" },
       { text: "# Wrap your existing command — that's it", type: "comment" },
       { text: "$ llmdawg run python app.py", type: "cmd" },
-      { text: "✓ WhyLLM connected (project: my-app)", type: "success" },
+      { text: "✓ whyLLM connected (project: my-app)", type: "success" },
       { text: "✓ Auto-patched: openai, anthropic, google-genai, mistral", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -675,7 +675,7 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
       { text: 'export LLMDAWG_PROJECT="my-app"', type: "cmd" },
       { text: "", type: "dim" },
       { text: "$ python app.py   # completely unchanged", type: "cmd" },
-      { text: "✓ WhyLLM auto-instrumented (via env)", type: "success" },
+      { text: "✓ whyLLM auto-instrumented (via env)", type: "success" },
       { text: "✓ Tracing openai, anthropic", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -684,7 +684,7 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
     id: "otel",
     label: "OpenTelemetry",
     badge: "1 endpoint",
-    description: "Already on OTel? Point your exporter at WhyLLM and you're done.",
+    description: "Already on OTel? Point your exporter at whyLLM and you're done.",
     color: "#FB923C",
     termTitle: "opentelemetry",
     steps: [
@@ -815,7 +815,7 @@ export default function LandingPage() {
           {/* CTAs — bottom of flex-1, just above stats */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              href="/auth/signup"
+              href="/register"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-black font-bold text-sm bg-lime-500 hover:bg-lime-400 transition-all duration-150 shadow-[0_0_24px_rgba(132,204,22,0.35)] hover:shadow-[0_0_36px_rgba(132,204,22,0.5)]"
             >
               Start monitoring free →
@@ -1105,7 +1105,7 @@ export default function LandingPage() {
                       <div className="w-5 h-5 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] text-red-400">✕</span>
                       </div>
-                      <span className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Without WhyLLM</span>
+                      <span className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Without <span className="normal-case">whyLLM</span></span>
                     </div>
                     <p className="text-zinc-500 text-sm leading-relaxed">{item.pain}</p>
                   </div>
@@ -1114,7 +1114,7 @@ export default function LandingPage() {
                       <div className="w-5 h-5 rounded-full bg-lime-500/10 border border-lime-500/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] text-lime-400">✓</span>
                       </div>
-                      <span className="text-[11px] text-lime-400 font-semibold uppercase tracking-wider">With WhyLLM</span>
+                      <span className="text-[11px] text-lime-400 font-semibold uppercase tracking-wider">With <span className="normal-case">whyLLM</span></span>
                     </div>
                     <ul className="space-y-1.5">
                       {item.solution.map((point: string, i: number) => (
@@ -1161,7 +1161,7 @@ export default function LandingPage() {
               },
               {
                 number: "02",
-                title: "Cost control that controls",
+                title: "Cost control",
                 description:
                   "Not just dashboards — actual enforcement. Set budgets per project, user, or API key. Auto-route to a cheaper model when a threshold hits. Kill switches included.",
                 detail: "Real-time spend alerts · Auto-routing · Hard limits · Per-user budgets",
@@ -1211,10 +1211,10 @@ export default function LandingPage() {
             <div className="grid grid-cols-5 bg-white/[0.02] border-b border-white/[0.06]">
               <div className="p-4 text-xs text-zinc-600 font-medium">Tool</div>
               {[
-                { label: "2-min setup",             color: "#84CC16" },
-                { label: "Cost control",             color: "#60A5FA" },
-                { label: "Hallucination detection",  color: "#C084FC" },
-                { label: "Open source",              color: "#71717a" },
+                { label: "2-min setup", color: "#84CC16" },
+                { label: "Cost control", color: "#60A5FA" },
+                { label: "Hallucination detection", color: "#C084FC" },
+                { label: "Open source", color: "#71717a" },
               ].map((col) => (
                 <div key={col.label} className="p-4 text-xs font-semibold text-center" style={{ color: col.color }}>
                   {col.label}
@@ -1222,11 +1222,11 @@ export default function LandingPage() {
               ))}
             </div>
             {[
-              { name: "Helicone",  vals: [true,  false, false, false] },
+              { name: "Helicone", vals: [true, false, false, false] },
               { name: "LangSmith", vals: [false, false, false, false] },
-              { name: "Langfuse",  vals: [false, false, false, true]  },
-              { name: "Arize",     vals: [false, true,  true,  false] },
-              { name: "WhyLLM",   vals: [true,  true,  true,  true],  highlight: true },
+              { name: "Langfuse", vals: [false, false, false, true] },
+              { name: "Arize", vals: [false, true, true, false] },
+              { name: "whyLLM", vals: [true, true, true, true], highlight: true },
             ].map((row) => (
               <div
                 key={row.name}
@@ -1380,7 +1380,7 @@ export default function LandingPage() {
                 </ul>
 
                 <Link
-                  href="/auth/signup"
+                  href="/register"
                   className={cn(
                     "block text-center py-3 rounded-xl text-sm font-semibold transition-all duration-150",
                     plan.highlight
@@ -1438,7 +1438,7 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/auth/signup"
+                  href="/register"
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-black font-bold text-base bg-lime-500 hover:bg-lime-400 transition-all duration-150 shadow-[0_0_30px_rgba(132,204,22,0.4)] hover:shadow-[0_0_50px_rgba(132,204,22,0.6)]"
                 >
                   Get started free →
@@ -1459,7 +1459,7 @@ export default function LandingPage() {
             <div className="w-6 h-6 rounded-md bg-lime-500 flex items-center justify-center">
               <span className="text-black font-black text-[10px]">W</span>
             </div>
-            <span className="font-bold text-zinc-400 text-sm">WhyLLM</span>
+            <span className="font-bold text-zinc-400 text-sm">whyLLM</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-8">
@@ -1474,7 +1474,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <p className="text-xs text-zinc-700">© 2026 WhyLLM. Built for engineers.</p>
+          <p className="text-xs text-zinc-700">© 2026 whyLLM. Built for engineers.</p>
         </div>
       </footer>
     </div>

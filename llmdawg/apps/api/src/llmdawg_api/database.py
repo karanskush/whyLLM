@@ -22,15 +22,38 @@ class Base(DeclarativeBase):
     """Declarative base for all ORM models."""
 
 
+def _clean_database_url(url: str) -> tuple[str, dict]:
+    """Strip params asyncpg doesn't understand; return (clean_url, connect_args).
+
+    asyncpg handles SSL via connect_args, not URL query params.
+    Neon injects sslmode=require and channel_binding=require — both must be removed
+    from the URL and handled separately.
+    """
+    from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
+
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query, keep_blank_values=True)
+
+    needs_ssl = params.pop("sslmode", ["disable"])[0] in ("require", "verify-ca", "verify-full")
+    params.pop("channel_binding", None)  # not an asyncpg param
+
+    clean_query = urlencode({k: v[0] for k, v in params.items()})
+    clean_url = urlunparse(parsed._replace(query=clean_query))
+
+    connect_args: dict = {"ssl": "require"} if needs_ssl else {}
+    return clean_url, connect_args
+
+
 def build_engine() -> AsyncEngine:
     settings = get_settings()
+    clean_url, connect_args = _clean_database_url(settings.database_url)
     return create_async_engine(
-        settings.database_url,
+        clean_url,
         pool_size=settings.db_pool_size,
         max_overflow=settings.db_max_overflow,
         pool_timeout=settings.db_pool_timeout,
         pool_recycle=settings.db_pool_recycle,
-        # Return decoded rows as Python dicts; asyncpg handles UUID natively
+        connect_args=connect_args,
         echo=settings.is_development,
     )
 

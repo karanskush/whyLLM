@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from llmdawg_api.config import get_settings
 from llmdawg_api.database import get_session_factory
 from llmdawg_api.models.org_member import OrgMember, ROLE_OWNER
 from llmdawg_api.models.organization import Organization
@@ -101,6 +102,7 @@ async def register(body: RegisterRequest) -> TokenResponse:
             name=body.name,
             org_id=org_id,
             org_name=org_name,
+            is_admin=body.email.lower() in get_settings().admin_email_set,
         ),
     )
 
@@ -150,6 +152,7 @@ async def login(body: LoginRequest) -> TokenResponse:
             name=user.name,
             org_id=org_id,
             org_name=org_name,
+            is_admin=user.email.lower() in get_settings().admin_email_set,
         ),
     )
 
@@ -175,4 +178,5 @@ async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
         name=current_user.name,
         org_id=row[0] if row else None,
         org_name=row[1] if row else None,
+        is_admin=current_user.email.lower() in get_settings().admin_email_set,
     )

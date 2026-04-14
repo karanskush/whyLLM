@@ -85,7 +85,7 @@ export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
       <div className="w-full max-w-xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">WhyLLM</h1>
+          <h1 className="text-2xl font-bold text-gray-900">whyLLM</h1>
           <p className="mt-1 text-sm text-gray-500">
             {step === "create" ? "Set up your first project" : "You're ready to go"}
           </p>

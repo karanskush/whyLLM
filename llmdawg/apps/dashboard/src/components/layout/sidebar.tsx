@@ -11,8 +11,11 @@ import {
   Zap,
   BookOpen,
   Cpu,
+  Users,
+  ShieldCheck,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -27,15 +30,21 @@ const HELP_ITEMS = [
   { href: "/dashboard/help/how-it-works", label: "How it Works", icon: Cpu },
 ];
 
+const ADMIN_ITEMS = [
+  { href: "/dashboard/admin", label: "Clients", icon: Users },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = session?.isAdmin;
 
   return (
     <aside className="flex flex-col w-60 min-h-screen bg-gray-900 text-gray-100 px-4 py-6">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8 px-2">
         <Zap className="w-6 h-6 text-indigo-400" />
-        <span className="text-lg font-bold tracking-tight">WhyLLM</span>
+        <span className="text-lg font-bold tracking-tight">whyLLM</span>
       </div>
 
       {/* Nav */}
@@ -59,6 +68,36 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Admin — only visible to admins */}
+      {isAdmin && (
+        <div className="mt-6 mb-2">
+          <p className="px-3 mb-1 text-xs font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+            <ShieldCheck className="w-3 h-3" />
+            Admin
+          </p>
+          <div className="space-y-1">
+            {ADMIN_ITEMS.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Help */}
       <div className="mt-6 mb-2">

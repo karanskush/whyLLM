@@ -2,11 +2,37 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Literal, Optional
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _resolve_database_url() -> str:
+    """Prefer DATABASE_URL; fall back to Vercel Postgres env vars (POSTGRES_URL).
+    Ensures the asyncpg driver prefix is present."""
+    url = (
+        os.environ.get("DATABASE_URL")
+        or os.environ.get("POSTGRES_URL")
+        or os.environ.get("POSTGRES_URL_NON_POOLING")
+        or "postgresql+asyncpg://llmdawg:llmdawg@localhost:5432/llmdawg"
+    )
+    # Vercel Postgres uses plain postgresql:// — swap in the asyncpg driver
+    if url.startswith("postgresql://") or url.startswith("postgres://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return url
+
+
+def _resolve_redis_url() -> str:
+    """Prefer REDIS_URL; fall back to Vercel KV env vars (KV_URL)."""
+    return (
+        os.environ.get("REDIS_URL")
+        or os.environ.get("KV_URL")
+        or "redis://localhost:6379/0"
+    )
 
 
 class Settings(BaseSettings):
@@ -14,7 +40,6 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        # Allow extra env vars without raising errors (e.g. Docker-injected vars)
         extra="ignore",
     )
 
@@ -27,23 +52,18 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, alias="DEBUG")
 
     # ---- Database -------------------------------------------------------------
-    # Must be postgresql+asyncpg://... for async SQLAlchemy
-    database_url: str = Field(
-        default="postgresql+asyncpg://llmdawg:llmdawg@localhost:5432/llmdawg",
-        alias="DATABASE_URL",
-    )
+    # Reads DATABASE_URL or Vercel's POSTGRES_URL automatically via _resolve_database_url()
+    database_url: str = Field(default_factory=_resolve_database_url, alias="DATABASE_URL")
 
-    # SQLAlchemy connection pool tuning
-    db_pool_size: int = Field(default=10, alias="DB_POOL_SIZE")
-    db_max_overflow: int = Field(default=20, alias="DB_MAX_OVERFLOW")
+    # SQLAlchemy connection pool — keep small on serverless (each cold start = new pool)
+    db_pool_size: int = Field(default=5, alias="DB_POOL_SIZE")
+    db_max_overflow: int = Field(default=10, alias="DB_MAX_OVERFLOW")
     db_pool_timeout: int = Field(default=30, alias="DB_POOL_TIMEOUT")
     db_pool_recycle: int = Field(default=1800, alias="DB_POOL_RECYCLE")
 
     # ---- Redis ----------------------------------------------------------------
-    redis_url: str = Field(
-        default="redis://localhost:6379/0",
-        alias="REDIS_URL",
-    )
+    # Reads REDIS_URL or Vercel KV's KV_URL automatically via _resolve_redis_url()
+    redis_url: str = Field(default_factory=_resolve_redis_url, alias="REDIS_URL")
 
     # ---- Auth -----------------------------------------------------------------
     secret_key: str = Field(
@@ -63,9 +83,18 @@ class Settings(BaseSettings):
         default="http://localhost:8000", alias="API_BASE_URL"
     )
 
+    # Comma-separated frontend origins allowed by CORS.
+    # e.g. CORS_ORIGINS=https://whyllm.vercel.app,https://whyllm.io
+    cors_origins: str = Field(
+        default="http://localhost:14392,http://127.0.0.1:14392",
+        alias="CORS_ORIGINS",
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     # ---- Admin ----------------------------------------------------------------
-    # Comma-separated list of emails that can access /api/v1/admin/* routes.
-    # e.g. ADMIN_EMAILS=you@example.com,teammate@example.com
     admin_emails: str = Field(default="", alias="ADMIN_EMAILS")
 
     @property
@@ -75,6 +104,22 @@ class Settings(BaseSettings):
     # ---- Optional LLM keys (hallucination judge) ------------------------------
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
     anthropic_api_key: Optional[str] = Field(default=None, alias="ANTHROPIC_API_KEY")
+
+    @field_validator("environment", mode="before")
+    @classmethod
+    def strip_environment(cls, v: str) -> str:
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def ensure_asyncpg_driver(cls, v: str) -> str:
+        """Ensure the asyncpg driver prefix is present regardless of how the URL was set."""
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("postgresql://") or v.startswith("postgres://"):
+                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
 
     @field_validator("secret_key")
     @classmethod

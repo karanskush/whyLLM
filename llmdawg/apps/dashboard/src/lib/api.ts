@@ -46,6 +46,7 @@ export interface UserResponse {
   name: string | null;
   org_id: string | null;
   org_name: string | null;
+  is_admin: boolean;
 }
 
 export interface TokenResponse {

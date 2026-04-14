@@ -9,6 +9,7 @@
 *.pem
 *.key
 secrets/
+*.md
 
 # --- Python -------------------------------------------------
 __pycache__/
@@ -59,3 +60,4 @@ Thumbs.db
 # Keep migrations in git, but ignore local SQLite if used during dev
 *.db
 *.sqlite3
+.vercel
