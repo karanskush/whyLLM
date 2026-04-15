@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMDawg Test Harness</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+      background: #18181b; color: #e4e4e7; padding: 2rem; line-height: 1.6;
+    }
+    h1 { color: #a3e635; margin-bottom: .25rem; font-size: 1.5rem; }
+    .subtitle { color: #71717a; margin-bottom: 2rem; font-size: .875rem; }
+    .controls { display: flex; gap: .75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    button {
+      padding: .5rem 1rem; border: 1px solid #3f3f46; border-radius: .375rem;
+      background: #27272a; color: #e4e4e7; cursor: pointer; font-family: inherit;
+      font-size: .8125rem; transition: all .15s;
+    }
+    button:hover { background: #3f3f46; border-color: #a3e635; color: #a3e635; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    button.run-all { background: #365314; border-color: #a3e635; color: #a3e635; font-weight: 600; }
+    button.run-all:hover { background: #4d7c0f; }
+    #results {
+      display: grid; gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    }
+    .card {
+      background: #27272a; border: 1px solid #3f3f46; border-radius: .5rem;
+      padding: 1rem; position: relative;
+    }
+    .card.success { border-color: #4ade80; }
+    .card.error { border-color: #f87171; }
+    .card.loading { border-color: #facc15; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+    .card-name { font-weight: 600; color: #a3e635; }
+    .card-model { color: #71717a; font-size: .75rem; }
+    .card-content {
+      background: #18181b; border-radius: .25rem; padding: .75rem;
+      font-size: .8125rem; white-space: pre-wrap; word-break: break-word;
+      max-height: 200px; overflow-y: auto;
+    }
+    .card-meta { margin-top: .5rem; color: #71717a; font-size: .75rem; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #3f3f46; border-top-color: #a3e635;
+      border-radius: 50%; animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-badge {
+      display: inline-block; padding: .125rem .5rem; border-radius: .25rem;
+      font-size: .6875rem; font-weight: 600; text-transform: uppercase;
+    }
+    .status-badge.success { background: #14532d; color: #4ade80; }
+    .status-badge.error { background: #450a0a; color: #f87171; }
+    .status-badge.loading { background: #422006; color: #facc15; }
+  </style>
+</head>
+<body>
+  <h1>LLMDawg Test Harness</h1>
+  <p class="subtitle">Run OpenAI prompts instrumented with LLMDawg SDK &mdash; check your dashboard for spans.</p>
+
+  <div class="controls">
+    <button class="run-all" onclick="runAll()">Run All Prompts</button>
+    {% for p in prompts %}
+    <button onclick="runSingle('{{ p.name }}')">{{ p.name }}</button>
+    {% endfor %}
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const resultsEl = document.getElementById('results');
+
+    function makeCard(name, status, content, meta) {
+      return `
+        <div class="card ${status}">
+          <div class="card-header">
+            <span class="card-name">${name}</span>
+            <span class="status-badge ${status}">
+              ${status === 'loading' ? '<span class="spinner"></span> running' : status}
+            </span>
+          </div>
+          <div class="card-content">${content}</div>
+          ${meta ? `<div class="card-meta">${meta}</div>` : ''}
+        </div>`;
+    }
+
+    function setButtons(disabled) {
+      document.querySelectorAll('button').forEach(b => b.disabled = disabled);
+    }
+
+    async function runSingle(name) {
+      setButtons(true);
+      resultsEl.innerHTML = makeCard(name, 'loading', 'Calling OpenAI...', '');
+      try {
+        const res = await fetch(`/api/run/${name}`, { method: 'POST' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const meta = data.usage
+          ? `${data.model} | ${data.usage.prompt_tokens} in / ${data.usage.completion_tokens} out / ${data.usage.total_tokens} total`
+          : data.model;
+        resultsEl.innerHTML = makeCard(data.prompt_name, 'success', escHtml(data.content || ''), meta);
+      } catch (err) {
+        resultsEl.innerHTML = makeCard(name, 'error', escHtml(err.message), '');
+      }
+      setButtons(false);
+    }
+
+    async function runAll() {
+      setButtons(true);
+      resultsEl.innerHTML = makeCard('all', 'loading', 'Running all prompts...', '');
+      try {
+        const res = await fetch('/api/run-all', { method: 'POST' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        let html = '';
+        for (const r of data.results) {
+          const meta = r.usage
+            ? `${r.model} | ${r.usage.prompt_tokens} in / ${r.usage.completion_tokens} out / ${r.usage.total_tokens} total`
+            : r.model;
+          html += makeCard(r.prompt_name, 'success', escHtml(r.content || ''), meta);
+        }
+        for (const e of data.errors) {
+          html += makeCard(e.prompt_name, 'error', escHtml(e.error), '');
+        }
+        resultsEl.innerHTML = html;
+      } catch (err) {
+        resultsEl.innerHTML = makeCard('all', 'error', escHtml(err.message), '');
+      }
+      setButtons(false);
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+  </script>
+</body>
+</html>
