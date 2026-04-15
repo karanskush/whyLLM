@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-import llmdawg
 import openai
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -16,6 +15,11 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from test_harness.prompts import PROMPT_MAP, PROMPTS, TestPrompt
+
+try:
+    import llmdawg
+except ImportError:
+    llmdawg = None
 
 load_dotenv()
 
@@ -31,11 +35,14 @@ def _get_openai_client() -> openai.OpenAI:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-        llmdawg.init(
-            api_key=os.environ.get("LLMDAWG_API_KEY"),
-            base_url=os.environ.get("LLMDAWG_BASE_URL", "http://localhost:8000"),
-        )
-        _oai_client = llmdawg.wrap(openai.OpenAI(api_key=api_key))
+        client = openai.OpenAI(api_key=api_key)
+        if llmdawg is not None:
+            llmdawg.init(
+                api_key=os.environ.get("LLMDAWG_API_KEY"),
+                base_url=os.environ.get("LLMDAWG_BASE_URL", "http://localhost:8000"),
+            )
+            client = llmdawg.wrap(client)
+        _oai_client = client
     return _oai_client
 
 
@@ -67,7 +74,8 @@ def _run_prompt(prompt: TestPrompt) -> dict[str, Any]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    llmdawg.flush(timeout=5.0)
+    if llmdawg is not None:
+        llmdawg.flush(timeout=5.0)
 
 
 app = FastAPI(title="LLMDawg Test Harness", lifespan=lifespan)

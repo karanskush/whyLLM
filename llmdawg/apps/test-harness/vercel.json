@@ -1,0 +1,10 @@
+{
+  "regions": ["iad1"],
+  "experimentalServices": {
+    "web": {
+      "framework": "fastapi",
+      "entrypoint": "api/index.py",
+      "routePrefix": "/"
+    }
+  }
+}

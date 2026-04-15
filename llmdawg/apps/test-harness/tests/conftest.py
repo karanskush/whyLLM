@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 from unittest.mock import MagicMock, patch
 
@@ -55,9 +56,15 @@ def mock_openai(_env):
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _make_chat_response()
 
-    with patch("test_harness.main.openai.OpenAI", return_value=mock_client), \
-         patch("test_harness.main.llmdawg.init"), \
-         patch("test_harness.main.llmdawg.wrap", return_value=mock_client):
+    patches = [patch("test_harness.main.openai.OpenAI", return_value=mock_client)]
+    import test_harness.main as m
+    if m.llmdawg is not None:
+        patches.append(patch("test_harness.main.llmdawg.init"))
+        patches.append(patch("test_harness.main.llmdawg.wrap", return_value=mock_client))
+
+    with contextlib.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
         yield mock_client
 
 
