@@ -1,5 +1,5 @@
 # ============================================================
-# LLMDawg Dashboard — Production Dockerfile
+# whyllm Dashboard — Production Dockerfile
 # Three-stage build: deps installer → builder → minimal runner
 # Non-root user, Next.js standalone output.
 # ============================================================

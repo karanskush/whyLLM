@@ -1,5 +1,5 @@
 /**
- * Typed API client for the LLMDawg backend.
+ * Typed API client for the whyllm backend.
  *
  * All requests include the session access token from NextAuth.
  * Throws on non-2xx responses with a structured error.

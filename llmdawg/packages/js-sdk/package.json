@@ -1,7 +1,7 @@
 {
-  "name": "@llmdawg/sdk",
+  "name": "@whyllm/sdk",
   "version": "0.1.0",
-  "description": "LLMDawg JS/TS SDK — instrument LLM calls in under 2 minutes",
+  "description": "whyllm JS/TS SDK — instrument LLM calls in under 2 minutes",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

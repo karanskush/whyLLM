@@ -1,18 +1,18 @@
-import { LLMDawgClient } from "./client";
-import type { LLMDawgConfig } from "./types";
+import { whyllmClient } from "./client";
+import type { whyllmConfig } from "./types";
 
-let _client: LLMDawgClient | null = null;
+let _client: whyllmClient | null = null;
 
-/** Initialize the global LLMDawg tracer. Call once at startup. */
-export function init(config: LLMDawgConfig): LLMDawgClient {
-  _client = new LLMDawgClient(config);
+/** Initialize the global whyllm tracer. Call once at startup. */
+export function init(config: whyllmConfig): whyllmClient {
+  _client = new whyllmClient(config);
   return _client;
 }
 
 /** Return the current client, throwing if init() was not called. */
-export function getClient(): LLMDawgClient {
+export function getClient(): whyllmClient {
   if (!_client) {
-    throw new Error("LLMDawg: call init() before using wrap() or getClient()");
+    throw new Error("whyllm: call init() before using wrap() or getClient()");
   }
   return _client;
 }

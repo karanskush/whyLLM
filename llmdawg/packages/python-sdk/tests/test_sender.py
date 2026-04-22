@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llmdawg.sender import SpanSender
+from whyllm.sender import SpanSender
 
 
 def _make_sender(max_queue: int = 100) -> tuple[SpanSender, MagicMock]:
-    """Return a SpanSender wired to a mock LLMDawgClient."""
+    """Return a SpanSender wired to a mock whyllmClient."""
     mock_client = MagicMock()
     mock_client.ingest_batch = MagicMock(return_value=None)
     sender = SpanSender(mock_client, max_queue=max_queue, flush_interval=60.0)

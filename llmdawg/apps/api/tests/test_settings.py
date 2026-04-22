@@ -19,15 +19,15 @@ from httpx import ASGITransport, AsyncClient
 
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 _DSN = _TEST_DB_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 
 @pytest_asyncio.fixture(scope="module")
 async def settings_client():
-    from llmdawg_api.main import create_app
-    from llmdawg_api.services.cost import CostEngine
+    from whyllm_api.main import create_app
+    from whyllm_api.services.cost import CostEngine
 
     app = create_app()
     ce = CostEngine()
@@ -41,7 +41,7 @@ async def settings_client():
 @pytest.fixture(scope="module")
 def settings_auth(settings_client):
     """Create user + org + project via psycopg2, return (headers, project_id)."""
-    from llmdawg_api.services.auth_service import create_access_token, hash_password
+    from whyllm_api.services.auth_service import create_access_token, hash_password
 
     user_id = uuid.uuid4()
     org_id = uuid.uuid4()
@@ -97,7 +97,7 @@ class TestApiKeys:
         assert r.status_code == 201
         data = r.json()
         assert "raw_key" in data
-        assert data["raw_key"].startswith("ld-prod_")
+        assert data["raw_key"].startswith("wl-prod_")
         assert "key_prefix" in data
         assert data["key_prefix"] == data["raw_key"][:12]
 
@@ -117,7 +117,7 @@ class TestApiKeys:
             headers=headers,
         )
         assert r.status_code == 201
-        assert r.json()["raw_key"].startswith("ld-dev_")
+        assert r.json()["raw_key"].startswith("wl-dev_")
 
     async def test_delete_key(self, settings_client, settings_auth):
         headers, pid = settings_auth

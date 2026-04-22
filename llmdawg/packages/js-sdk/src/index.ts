@@ -1,9 +1,9 @@
 /**
- * LLMDawg JS/TS SDK
+ * whyllm JS/TS SDK
  *
  * @example
  * ```ts
- * import { init, wrap } from "@llmdawg/sdk";
+ * import { init, wrap } from "@whyllm/sdk";
  * import OpenAI from "openai";
  *
  * init({ apiKey: "ld-proj-..." });
@@ -12,6 +12,6 @@
  * ```
  */
 
-export { LLMDawgClient } from "./client";
+export { whyllmClient } from "./client";
 export { init, wrap } from "./tracer";
-export type { LLMDawgConfig, SpanData } from "./types";
+export type { whyllmConfig, SpanData } from "./types";

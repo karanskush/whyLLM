@@ -12,7 +12,7 @@ def test_health(client):
 def test_test_page_renders(client):
     resp = client.get("/test")
     assert resp.status_code == 200
-    assert "LLMDawg Test Harness" in resp.text
+    assert "whyllm Test Harness" in resp.text
     assert "summarise" in resp.text
     assert "Run All Prompts" in resp.text
 

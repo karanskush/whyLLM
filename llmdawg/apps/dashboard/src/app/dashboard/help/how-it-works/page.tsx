@@ -130,7 +130,7 @@ export default function HowItWorksPage() {
         {/* Intro */}
         <div className="bg-lime-500/10 border border-lime-500/20 rounded-xl px-6 py-5">
           <p className="text-sm font-semibold text-lime-300 mb-1">
-            whyLLM is a transparent proxy and ingest pipeline for LLM traffic.
+            whyllm is a transparent proxy and ingest pipeline for LLM traffic.
           </p>
           <p className="text-sm text-zinc-400">
             Your app's LLM calls flow through a local or cloud-hosted proxy. Every request and
@@ -150,7 +150,7 @@ export default function HowItWorksPage() {
           <div className="max-w-xs mx-auto mb-6">
             <FlowBox label="Your app" sublabel="Python / TS / Go / …" color="zinc" />
             <FlowArrow />
-            <FlowBox label="whyLLM proxy" sublabel="localhost:17823" color="lime" />
+            <FlowBox label="whyllm proxy" sublabel="localhost:17823" color="lime" />
             <FlowArrow />
             <FlowBox label="OpenAI / Anthropic" sublabel="api.openai.com" color="emerald" />
           </div>
@@ -160,7 +160,7 @@ export default function HowItWorksPage() {
             metadata, forwards the request byte-for-byte to the upstream LLM provider, then
             streams the response back. Your <strong className="text-zinc-200">own API key</strong> is passed through in the
             original <code className="text-xs bg-zinc-800 text-zinc-300 px-1 rounded">Authorization</code> header
-            — whyLLM never stores or replaces it.
+            — whyllm never stores or replaces it.
           </p>
 
           <div className="space-y-2">
@@ -172,7 +172,7 @@ export default function HowItWorksPage() {
           </div>
 
           <Callout icon={Lock} color="blue">
-            <strong>Key security:</strong> whyLLM only stores token counts, model names, latency,
+            <strong>Key security:</strong> whyllm only stores token counts, model names, latency,
             and cost. Prompt content and completion text are stored in encrypted spans —
             never your API keys.
           </Callout>
@@ -258,7 +258,7 @@ export default function HowItWorksPage() {
           />
 
           <p className="text-sm text-zinc-400 mb-4">
-            whyLLM ships with a pricing table for all major OpenAI and Anthropic models.
+            whyllm ships with a pricing table for all major OpenAI and Anthropic models.
             When a span is created, cost is calculated immediately from the token counts:
           </p>
 
@@ -374,8 +374,8 @@ export default function HowItWorksPage() {
 
           <ol className="space-y-3">
             {[
-              "Your app calls the OpenAI SDK with OPENAI_BASE_URL pointing at whyLLM.",
-              "The proxy authenticates your project key (X-WhyLLM-Key header) and checks the budget counter.",
+              "Your app calls the OpenAI SDK with OPENAI_BASE_URL pointing at whyllm.",
+              "The proxy authenticates your project key (X-whyllm-Key header) and checks the budget counter.",
               "The request is forwarded byte-for-byte to OpenAI. Your API key travels in the Authorization header, untouched.",
               "The response streams back. As the last byte arrives, the proxy creates a span with token counts, cost, and latency.",
               "The span is pushed to Redis (LPUSH). The HTTP response is returned to your app.",

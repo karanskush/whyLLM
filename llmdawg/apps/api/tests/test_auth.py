@@ -23,15 +23,15 @@ from httpx import ASGITransport, AsyncClient
 
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 
 
 @pytest_asyncio.fixture(scope="module")
 async def auth_client():
     """ASGI test client with CostEngine seeded from file."""
-    from llmdawg_api.main import create_app
-    from llmdawg_api.services.cost import CostEngine
+    from whyllm_api.main import create_app
+    from whyllm_api.services.cost import CostEngine
 
     app = create_app()
     ce = CostEngine()
@@ -51,7 +51,7 @@ class TestJWT:
     """Unit tests for JWT creation and decoding."""
 
     def test_create_and_decode_token(self):
-        from llmdawg_api.services.auth_service import create_access_token, decode_token
+        from whyllm_api.services.auth_service import create_access_token, decode_token
         user_id = uuid.uuid4()
         org_id = uuid.uuid4()
         token = create_access_token(user_id, org_id, "test@example.com")
@@ -62,12 +62,12 @@ class TestJWT:
         assert payload["type"] == "access"
 
     def test_decode_invalid_token_raises(self):
-        from llmdawg_api.services.auth_service import decode_token
+        from whyllm_api.services.auth_service import decode_token
         with pytest.raises(ValueError):
             decode_token("not.a.valid.jwt")
 
     def test_token_has_expiry(self):
-        from llmdawg_api.services.auth_service import create_access_token, decode_token
+        from whyllm_api.services.auth_service import create_access_token, decode_token
         token = create_access_token(uuid.uuid4(), uuid.uuid4(), "x@x.com")
         payload = decode_token(token)
         assert "exp" in payload
@@ -99,7 +99,7 @@ class TestRegister:
         assert data["user"]["org_id"] is not None
 
     async def test_returns_valid_jwt(self, auth_client):
-        from llmdawg_api.services.auth_service import decode_token
+        from whyllm_api.services.auth_service import decode_token
         email = f"jwt-{uuid.uuid4().hex[:8]}@example.com"
         response = await auth_client.post(
             "/api/v1/auth/register",
@@ -189,7 +189,7 @@ class TestLogin:
         assert response.status_code == 401
 
     async def test_login_token_is_valid_jwt(self, auth_client):
-        from llmdawg_api.services.auth_service import decode_token
+        from whyllm_api.services.auth_service import decode_token
         email = f"logintoken-{uuid.uuid4().hex[:8]}@example.com"
         await self._register(auth_client, email)
 

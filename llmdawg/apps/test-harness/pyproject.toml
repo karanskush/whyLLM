@@ -1,7 +1,7 @@
 [project]
-name = "llmdawg-test-harness"
+name = "whyllm-test-harness"
 version = "0.1.0"
-description = "Test harness for validating LLMDawg observability with OpenAI calls"
+description = "Test harness for validating whyllm observability with OpenAI calls"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",

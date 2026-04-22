@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from llmdawg.wrappers.openai_wrapper import (
+from whyllm.wrappers.openai_wrapper import (
     _build_span,
     _build_stream_span,
     wrap_openai,

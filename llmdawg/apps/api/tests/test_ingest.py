@@ -38,11 +38,11 @@ from sqlalchemy.pool import NullPool
 
 import os
 
-from llmdawg_api.main import create_app
+from whyllm_api.main import create_app
 
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 _TEST_REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
@@ -118,7 +118,7 @@ async def client(test_ids):
     httpx ASGITransport does NOT trigger the ASGI lifespan — we set app.state
     manually instead.
     """
-    from llmdawg_api.services.cost import CostEngine
+    from whyllm_api.services.cost import CostEngine
 
     app = create_app()
 
@@ -150,7 +150,7 @@ async def redis_client():
 # ── Helper ────────────────────────────────────────────────────────────────────
 
 def _auth(raw_key: str) -> dict[str, str]:
-    return {"X-LLMDawg-Key": raw_key}
+    return {"X-whyllm-Key": raw_key}
 
 
 def _span_body(**overrides: Any) -> dict[str, Any]:
@@ -179,7 +179,7 @@ class TestApiKeyAuth:
         resp = await client.post(
             "/v1/ingest/span",
             json=_span_body(),
-            headers={"X-LLMDawg-Key": "ld-fake_totally_not_a_real_key_abc"},
+            headers={"X-whyllm-Key": "ld-fake_totally_not_a_real_key_abc"},
         )
         assert resp.status_code == 401
         assert resp.json()["detail"]["error"] == "invalid_api_key"
@@ -220,7 +220,7 @@ class TestApiKeyAuth:
             resp = await client.post(
                 "/v1/ingest/span",
                 json=_span_body(),
-                headers={"X-LLMDawg-Key": raw_key},
+                headers={"X-whyllm-Key": raw_key},
             )
             assert resp.status_code == 401
         finally:
@@ -251,7 +251,7 @@ class TestApiKeyAuth:
             resp = await client.post(
                 "/v1/ingest/span",
                 json=_span_body(),
-                headers={"X-LLMDawg-Key": raw_key},
+                headers={"X-whyllm-Key": raw_key},
             )
             assert resp.status_code == 401
         finally:
@@ -745,7 +745,7 @@ class TestRateLimiting:
 class TestCostEngine:
     @pytest.mark.asyncio
     async def test_estimate_known_model(self) -> None:
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         # Seed directly without DB
@@ -765,7 +765,7 @@ class TestCostEngine:
 
     @pytest.mark.asyncio
     async def test_estimate_with_cached_tokens(self) -> None:
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         engine._prices = {
@@ -789,7 +789,7 @@ class TestCostEngine:
 
     @pytest.mark.asyncio
     async def test_estimate_unknown_model_returns_none(self) -> None:
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         engine._prices = {}
@@ -802,13 +802,13 @@ class TestCostEngine:
     async def test_unknown_model_warning_logged_once(self) -> None:
         """Unknown model warning should only log once per unique (provider, model)."""
         import logging
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         engine._prices = {}
         engine._loaded = True
 
-        with patch("llmdawg_api.services.cost.log") as mock_log:
+        with patch("whyllm_api.services.cost.log") as mock_log:
             engine.estimate("x", "y", 10, 10, 0)
             engine.estimate("x", "y", 10, 10, 0)  # second call — should NOT log again
             engine.estimate("x", "y", 10, 10, 0)  # third call
@@ -821,7 +821,7 @@ class TestCostEngine:
 
     @pytest.mark.asyncio
     async def test_model_count_property(self) -> None:
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         engine._prices = {
@@ -833,7 +833,7 @@ class TestCostEngine:
     @pytest.mark.asyncio
     async def test_seed_from_json_on_db_failure(self) -> None:
         """When DB is unavailable, _seed_from_json must load prices as fallback."""
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
 
@@ -848,7 +848,7 @@ class TestCostEngine:
 
     @pytest.mark.asyncio
     async def test_refresh_loop_cancels_cleanly(self) -> None:
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         engine._prices = {}
@@ -866,7 +866,7 @@ class TestCostEngine:
     @pytest.mark.asyncio
     async def test_start_stop_lifecycle(self) -> None:
         """CostEngine.start() + stop() must not raise."""
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
 
         engine = CostEngine()
         await engine.start()

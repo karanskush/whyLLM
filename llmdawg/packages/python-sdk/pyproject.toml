@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "llmdawg"
+name = "whyllm"
 version = "0.1.0"
-description = "LLMDawg Python SDK — instrument LLM calls in under 2 minutes"
+description = "whyllm Python SDK — instrument LLM calls in under 2 minutes"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -21,10 +21,10 @@ openai = ["openai>=1.0.0"]
 anthropic = ["anthropic>=0.20.0"]
 
 [project.scripts]
-llmdawg = "llmdawg.cli:main"
+whyllm = "whyllm.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/llmdawg"]
+packages = ["src/whyllm"]
 
 [tool.ruff]
 target-version = "py39"

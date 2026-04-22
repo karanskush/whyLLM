@@ -1,4 +1,4 @@
-# LLMDawg — Build Progress
+# whyllm — Build Progress
 
 ## Test Run Log
 
@@ -30,11 +30,11 @@
 ## Files Created / Modified by Prompt
 
 ### Prompt 08A — API
-- `apps/api/src/llmdawg_api/routes/cost.py` — GET /v1/projects/:id/cost/breakdown
-- `apps/api/src/llmdawg_api/routes/settings.py` — CRUD for api-keys, budgets, alerts
-- `apps/api/src/llmdawg_api/schemas/settings.py` — request/response schemas
+- `apps/api/src/whyllm_api/routes/cost.py` — GET /v1/projects/:id/cost/breakdown
+- `apps/api/src/whyllm_api/routes/settings.py` — CRUD for api-keys, budgets, alerts
+- `apps/api/src/whyllm_api/schemas/settings.py` — request/response schemas
 - `apps/api/tests/test_settings.py` — 26 tests (TestApiKeys, TestBudgets, TestAlerts, TestCostBreakdown)
-- `apps/api/src/llmdawg_api/main.py` — registered cost_router + settings_router
+- `apps/api/src/whyllm_api/main.py` — registered cost_router + settings_router
 
 ### Prompt 08B — Dashboard
 - `apps/dashboard/src/app/dashboard/cost/page.tsx` — cost analytics with heatmap
@@ -45,13 +45,13 @@
 - `apps/dashboard/src/lib/api.ts` — added cost + settings namespaces + types
 
 ### Prompt 09 — Python SDK
-- `packages/python-sdk/src/llmdawg/wrappers/anthropic_wrapper.py` — full Anthropic patcher
-- `packages/python-sdk/src/llmdawg/wrappers/openai_wrapper.py` — full OpenAI patcher
-- `packages/python-sdk/src/llmdawg/sender.py` — SpanSender background queue
-- `packages/python-sdk/src/llmdawg/client.py` — LLMDawgClient with ingest_batch
-- `packages/python-sdk/src/llmdawg/tracer.py` — init(), wrap(), flush() global API
-- `packages/python-sdk/src/llmdawg/__init__.py` — package exports
-- `packages/python-sdk/src/llmdawg/cli.py` — click CLI (verify, test-ingest)
+- `packages/python-sdk/src/whyllm/wrappers/anthropic_wrapper.py` — full Anthropic patcher
+- `packages/python-sdk/src/whyllm/wrappers/openai_wrapper.py` — full OpenAI patcher
+- `packages/python-sdk/src/whyllm/sender.py` — SpanSender background queue
+- `packages/python-sdk/src/whyllm/client.py` — whyllmClient with ingest_batch
+- `packages/python-sdk/src/whyllm/tracer.py` — init(), wrap(), flush() global API
+- `packages/python-sdk/src/whyllm/__init__.py` — package exports
+- `packages/python-sdk/src/whyllm/cli.py` — click CLI (verify, test-ingest)
 - `packages/python-sdk/pyproject.toml` — click dep + [project.scripts] entry point
 - `packages/python-sdk/tests/test_sender.py` — 16 tests
 - `packages/python-sdk/tests/test_openai_patcher.py` — 21 tests

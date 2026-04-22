@@ -6,7 +6,7 @@ The health endpoint is always expected to return 200 regardless of downstream st
 
 from httpx import AsyncClient, ASGITransport
 
-from llmdawg_api.main import app
+from whyllm_api.main import app
 
 
 async def test_health_returns_ok() -> None:

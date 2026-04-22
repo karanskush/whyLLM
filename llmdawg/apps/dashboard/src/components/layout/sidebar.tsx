@@ -46,7 +46,7 @@ export function Sidebar() {
         <div className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center flex-shrink-0">
           <Zap className="w-4 h-4 text-black" />
         </div>
-        <span className="text-base font-bold tracking-tight text-white">whyLLM</span>
+        <span className="text-base font-bold tracking-tight text-white">whyllm</span>
       </div>
 
       {/* Nav */}

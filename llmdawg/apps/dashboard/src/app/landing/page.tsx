@@ -80,7 +80,7 @@ function Nav() {
           <div className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center shadow-[0_0_12px_rgba(132,204,22,0.5)]">
             <span className="text-black font-black text-xs tracking-tighter">W</span>
           </div>
-          <span className="font-bold text-white text-base">whyLLM</span>
+          <span className="font-bold text-white text-base">whyllm</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
@@ -508,7 +508,7 @@ function DashboardMockup() {
                 fill="#84CC16"
                 fontFamily="monospace"
               >
-                whyLLM enabled
+                whyllm enabled
               </text>
             </svg>
           </div>
@@ -567,10 +567,10 @@ function DashboardMockup() {
 // Data
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PYTHON_CODE = `import llmdawg          # ← add this one line
+const PYTHON_CODE = `import whyllm          # ← add this one line
 from openai import OpenAI
 
-llmdawg.init(api_key="lld_sk_...")   # ← and this
+whyllm.init(api_key="lld_sk_...")   # ← and this
 
 client = OpenAI()   # nothing else changes
 
@@ -581,7 +581,7 @@ response = client.chat.completions.create(
 # ✓ every call is now traced, costed, and scored`;
 
 const CLI_CODE = `# Or use zero-code mode — no file changes at all
-$ llmdawg run python app.py`;
+$ whyllm run python app.py`;
 
 const JS_CODE = `import { init } from '@whyllm/sdk'    // ← add this
 import OpenAI from 'openai'
@@ -619,17 +619,17 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
     color: "#84CC16",
     termTitle: "bash",
     steps: [
-      { text: "Install the SDK", code: "pip install llmdawg" },
-      { text: "Add two lines", code: "llmdawg.init(api_key=...)" },
+      { text: "Install the SDK", code: "pip install whyllm" },
+      { text: "Add two lines", code: "whyllm.init(api_key=...)" },
       { text: "Ship it", code: "Dashboard is live instantly" },
     ],
     lines: [
-      { text: "$ pip install llmdawg", type: "cmd" },
-      { text: "Collecting llmdawg...", type: "dim" },
-      { text: "✓ llmdawg 0.4.2 installed", type: "success" },
+      { text: "$ pip install whyllm", type: "cmd" },
+      { text: "Collecting whyllm...", type: "dim" },
+      { text: "✓ whyllm 0.4.2 installed", type: "success" },
       { text: "", type: "dim" },
       { text: "$ python app.py", type: "cmd" },
-      { text: "✓ whyLLM connected (project: my-app)", type: "success" },
+      { text: "✓ whyllm connected (project: my-app)", type: "success" },
       { text: "✓ Tracing 2 integrations: openai, anthropic", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -642,17 +642,17 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
     color: "#60A5FA",
     termTitle: "bash",
     steps: [
-      { text: "Install the CLI", code: "pip install llmdawg" },
-      { text: "Wrap your command", code: "llmdawg run python app.py" },
+      { text: "Install the CLI", code: "pip install whyllm" },
+      { text: "Wrap your command", code: "whyllm run python app.py" },
       { text: "Ship it", code: "Zero file changes required" },
     ],
     lines: [
-      { text: "$ pip install llmdawg", type: "cmd" },
-      { text: "✓ llmdawg 0.4.2 installed", type: "success" },
+      { text: "$ pip install whyllm", type: "cmd" },
+      { text: "✓ whyllm 0.4.2 installed", type: "success" },
       { text: "", type: "dim" },
       { text: "# Wrap your existing command — that's it", type: "comment" },
-      { text: "$ llmdawg run python app.py", type: "cmd" },
-      { text: "✓ whyLLM connected (project: my-app)", type: "success" },
+      { text: "$ whyllm run python app.py", type: "cmd" },
+      { text: "✓ whyllm connected (project: my-app)", type: "success" },
       { text: "✓ Auto-patched: openai, anthropic, google-genai, mistral", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -665,17 +665,17 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
     color: "#C084FC",
     termTitle: "bash",
     steps: [
-      { text: "Set your API key", code: 'export LLMDAWG_API_KEY="lld_sk_..."' },
-      { text: "Set your project", code: 'export LLMDAWG_PROJECT="my-app"' },
+      { text: "Set your API key", code: 'export WHYLLM_API_KEY="lld_sk_..."' },
+      { text: "Set your project", code: 'export WHYLLM_PROJECT="my-app"' },
       { text: "Run unchanged", code: "python app.py — auto-instrumented" },
     ],
     lines: [
       { text: "# Add to .env or shell profile", type: "comment" },
-      { text: 'export LLMDAWG_API_KEY="lld_sk_..."', type: "cmd" },
-      { text: 'export LLMDAWG_PROJECT="my-app"', type: "cmd" },
+      { text: 'export WHYLLM_API_KEY="lld_sk_..."', type: "cmd" },
+      { text: 'export WHYLLM_PROJECT="my-app"', type: "cmd" },
       { text: "", type: "dim" },
       { text: "$ python app.py   # completely unchanged", type: "cmd" },
-      { text: "✓ whyLLM auto-instrumented (via env)", type: "success" },
+      { text: "✓ whyllm auto-instrumented (via env)", type: "success" },
       { text: "✓ Tracing openai, anthropic", type: "success" },
       { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
     ],
@@ -684,7 +684,7 @@ const INTEGRATION_METHODS: IntegrationMethod[] = [
     id: "otel",
     label: "OpenTelemetry",
     badge: "1 endpoint",
-    description: "Already on OTel? Point your exporter at whyLLM and you're done.",
+    description: "Already on OTel? Point your exporter at whyllm and you're done.",
     color: "#FB923C",
     termTitle: "opentelemetry",
     steps: [
@@ -1025,7 +1025,7 @@ export default function LandingPage() {
                 {
                   pain: "You tried three observability tools. Each took days and half your prompts weren't captured.",
                   solution: [
-                    "`llmdawg run app.py` — monkey-patches openai/anthropic at import time",
+                    "`whyllm run app.py` — monkey-patches openai/anthropic at import time",
                     "Zero app code changes, zero proxy in the critical path",
                     "100% capture rate from request #1",
                   ],
@@ -1105,7 +1105,7 @@ export default function LandingPage() {
                       <div className="w-5 h-5 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] text-red-400">✕</span>
                       </div>
-                      <span className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Without <span className="normal-case">whyLLM</span></span>
+                      <span className="text-[11px] text-red-400 font-semibold uppercase tracking-wider">Without <span className="normal-case">whyllm</span></span>
                     </div>
                     <p className="text-zinc-500 text-sm leading-relaxed">{item.pain}</p>
                   </div>
@@ -1114,7 +1114,7 @@ export default function LandingPage() {
                       <div className="w-5 h-5 rounded-full bg-lime-500/10 border border-lime-500/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] text-lime-400">✓</span>
                       </div>
-                      <span className="text-[11px] text-lime-400 font-semibold uppercase tracking-wider">With <span className="normal-case">whyLLM</span></span>
+                      <span className="text-[11px] text-lime-400 font-semibold uppercase tracking-wider">With <span className="normal-case">whyllm</span></span>
                     </div>
                     <ul className="space-y-1.5">
                       {item.solution.map((point: string, i: number) => (
@@ -1226,7 +1226,7 @@ export default function LandingPage() {
               { name: "LangSmith", vals: [false, false, false, false] },
               { name: "Langfuse", vals: [false, false, false, true] },
               { name: "Arize", vals: [false, true, true, false] },
-              { name: "whyLLM", vals: [true, true, true, true], highlight: true },
+              { name: "whyllm", vals: [true, true, true, true], highlight: true },
             ].map((row) => (
               <div
                 key={row.name}
@@ -1444,7 +1444,7 @@ export default function LandingPage() {
                   Get started free →
                 </Link>
                 <div className="font-mono text-sm text-zinc-600 bg-zinc-900 px-4 py-3 rounded-xl border border-white/[0.06]">
-                  pip install llmdawg
+                  pip install whyllm
                 </div>
               </div>
             </div>
@@ -1459,7 +1459,7 @@ export default function LandingPage() {
             <div className="w-6 h-6 rounded-md bg-lime-500 flex items-center justify-center">
               <span className="text-black font-black text-[10px]">W</span>
             </div>
-            <span className="font-bold text-zinc-400 text-sm">whyLLM</span>
+            <span className="font-bold text-zinc-400 text-sm">whyllm</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-8">
@@ -1474,7 +1474,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <p className="text-xs text-zinc-700">© 2026 whyLLM. Built for engineers.</p>
+          <p className="text-xs text-zinc-700">© 2026 whyllm. Built for engineers.</p>
         </div>
       </footer>
     </div>

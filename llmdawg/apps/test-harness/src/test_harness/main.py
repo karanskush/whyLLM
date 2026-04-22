@@ -1,4 +1,4 @@
-"""FastAPI test harness — runs OpenAI prompts through LLMDawg instrumentation."""
+"""FastAPI test harness — runs OpenAI prompts through whyllm instrumentation."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-import llmdawg
+import whyllm
 import openai
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -31,11 +31,11 @@ def _get_openai_client() -> openai.OpenAI:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-        llmdawg.init(
-            api_key=os.environ.get("LLMDAWG_API_KEY"),
-            base_url=os.environ.get("LLMDAWG_BASE_URL", "http://localhost:8000"),
+        whyllm.init(
+            api_key=os.environ.get("WHYLLM_API_KEY"),
+            base_url=os.environ.get("WHYLLM_BASE_URL", "http://localhost:8000"),
         )
-        _oai_client = llmdawg.wrap(openai.OpenAI(api_key=api_key))
+        _oai_client = whyllm.wrap(openai.OpenAI(api_key=api_key))
     return _oai_client
 
 
@@ -67,10 +67,10 @@ def _run_prompt(prompt: TestPrompt) -> dict[str, Any]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    llmdawg.flush(timeout=5.0)
+    whyllm.flush(timeout=5.0)
 
 
-app = FastAPI(title="LLMDawg Test Harness", lifespan=lifespan)
+app = FastAPI(title="whyllm Test Harness", lifespan=lifespan)
 
 
 @app.get("/test", response_class=HTMLResponse)

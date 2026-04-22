@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-# Resolve the monorepo root (4 levels up from this file: tests/ → api/ → apps/ → llmdawg/)
+# Resolve the monorepo root (4 levels up from this file: tests/ → api/ → apps/ → whyllm/)
 _MONOREPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_MONOREPO_ROOT / "packages" / "cost-tables"))
 from loader import compute_cost, get_price, list_models, load_prices

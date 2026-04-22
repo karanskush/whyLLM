@@ -62,7 +62,7 @@ export default function RegisterPage() {
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-lime-500 mb-4">
             <Zap className="w-5 h-5 text-black" />
           </div>
-          <h1 className="text-xl font-bold text-white">whyLLM</h1>
+          <h1 className="text-xl font-bold text-white">whyllm</h1>
           <p className="mt-1 text-sm text-zinc-500">Create your account</p>
         </div>
 

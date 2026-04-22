@@ -26,7 +26,7 @@ from httpx import ASGITransport, AsyncClient
 
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 
 
@@ -35,8 +35,8 @@ _TEST_DB_URL = os.environ.get(
 @pytest_asyncio.fixture(scope="module")
 async def spans_client():
     """ASGI test client; CostEngine seeded from static JSON (no DB needed)."""
-    from llmdawg_api.main import create_app
-    from llmdawg_api.services.cost import CostEngine
+    from whyllm_api.main import create_app
+    from whyllm_api.services.cost import CostEngine
 
     app = create_app()
     ce = CostEngine()
@@ -59,7 +59,7 @@ def auth_headers():
     instead of the test's loop, causing 'Future attached to different loop' errors.
     """
     import psycopg2
-    from llmdawg_api.services.auth_service import create_access_token, hash_password
+    from whyllm_api.services.auth_service import create_access_token, hash_password
 
     user_id = uuid.uuid4()
     org_id = uuid.uuid4()
@@ -93,7 +93,7 @@ def auth_headers():
 def project_id(auth_headers):
     """Create a project using psycopg2 (sync) to avoid event-loop conflicts."""
     import psycopg2
-    from llmdawg_api.services.auth_service import decode_token
+    from whyllm_api.services.auth_service import decode_token
 
     token = auth_headers["Authorization"].split(" ")[1]
     org_id = decode_token(token)["org_id"]
@@ -119,7 +119,7 @@ def project_id(auth_headers):
 def seeded_spans(project_id, auth_headers):
     """Insert 5 deterministic spans using sync psycopg2 to avoid event-loop conflicts."""
     import psycopg2
-    from llmdawg_api.services.auth_service import decode_token
+    from whyllm_api.services.auth_service import decode_token
 
     token = auth_headers["Authorization"].split(" ")[1]
     org_id = decode_token(token)["org_id"]
@@ -542,7 +542,7 @@ class TestCursorHelpers:
     """Unit tests for encode_cursor / decode_cursor."""
 
     def test_roundtrip(self):
-        from llmdawg_api.schemas.spans import decode_cursor, encode_cursor
+        from whyllm_api.schemas.spans import decode_cursor, encode_cursor
 
         ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
         span_id = uuid.uuid4()
@@ -552,13 +552,13 @@ class TestCursorHelpers:
         assert decoded_id == span_id
 
     def test_invalid_cursor_raises_value_error(self):
-        from llmdawg_api.schemas.spans import decode_cursor
+        from whyllm_api.schemas.spans import decode_cursor
 
         with pytest.raises(ValueError):
             decode_cursor("aaaabbbbcccc")
 
     def test_missing_ts_field_raises(self):
-        from llmdawg_api.schemas.spans import decode_cursor
+        from whyllm_api.schemas.spans import decode_cursor
 
         payload = json.dumps({"id": str(uuid.uuid4())})
         cursor = base64.urlsafe_b64encode(payload.encode()).decode()
@@ -566,7 +566,7 @@ class TestCursorHelpers:
             decode_cursor(cursor)
 
     def test_missing_id_field_raises(self):
-        from llmdawg_api.schemas.spans import decode_cursor
+        from whyllm_api.schemas.spans import decode_cursor
 
         payload = json.dumps({"ts": "2024-06-01T12:00:00+00:00"})
         cursor = base64.urlsafe_b64encode(payload.encode()).decode()

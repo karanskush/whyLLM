@@ -1,5 +1,5 @@
 networks:
-  llmdawg_network:
+  whyllm_network:
     driver: bridge
 
 volumes:
@@ -11,17 +11,17 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     networks:
-      - llmdawg_network
+      - whyllm_network
     ports:
       - "15432:5432"
     environment:
-      POSTGRES_USER: llmdawg
-      POSTGRES_PASSWORD: llmdawg
-      POSTGRES_DB: llmdawg
+      POSTGRES_USER: whyllm
+      POSTGRES_PASSWORD: whyllm
+      POSTGRES_DB: whyllm
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U llmdawg -d llmdawg"]
+      test: ["CMD-SHELL", "pg_isready -U whyllm -d whyllm"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -31,7 +31,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     networks:
-      - llmdawg_network
+      - whyllm_network
     ports:
       - "16379:6379"
     command: redis-server --appendonly yes --appendfsync everysec
@@ -50,13 +50,13 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     networks:
-      - llmdawg_network
+      - whyllm_network
     ports:
       - "17823:8000"
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://llmdawg:llmdawg@postgres:5432/llmdawg
+      DATABASE_URL: postgresql+asyncpg://whyllm:whyllm@postgres:5432/whyllm
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     networks:
-      - llmdawg_network
+      - whyllm_network
     ports:
       - "14392:3000"
     environment:
@@ -91,14 +91,14 @@ services:
     build:
       context: ../apps/api
       dockerfile: Dockerfile
-    command: python -m llmdawg_api.worker
+    command: python -m whyllm_api.worker
     restart: unless-stopped
     networks:
-      - llmdawg_network
+      - whyllm_network
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://llmdawg:llmdawg@postgres:5432/llmdawg
+      DATABASE_URL: postgresql+asyncpg://whyllm:whyllm@postgres:5432/whyllm
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:

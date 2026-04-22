@@ -116,7 +116,7 @@ export default function OnboardingGuidePage() {
             </span>
           </div>
           <p className="text-sm text-zinc-400">
-            whyLLM sits between your app and OpenAI / Anthropic. Every LLM call
+            whyllm sits between your app and OpenAI / Anthropic. Every LLM call
             flows through us — you get full visibility into tokens, cost, latency,
             and errors without changing a single line of your application code.
           </p>
@@ -143,7 +143,7 @@ export default function OnboardingGuidePage() {
           </p>
           <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
             <span className="text-xs text-amber-400">
-              Your key looks like: <code className="font-mono font-semibold">ld-prod_xxxxxxxxxxxx</code>
+              Your key looks like: <code className="font-mono font-semibold">wl-prod_xxxxxxxxxxxx</code>
             </span>
           </div>
         </div>
@@ -164,18 +164,18 @@ export default function OnboardingGuidePage() {
             >
               <p className="text-sm text-zinc-400 mt-4 mb-1">
                 The OpenAI SDK reads <code className="text-xs bg-zinc-800 text-zinc-300 px-1 rounded">OPENAI_BASE_URL</code> natively.
-                Point it at whyLLM and add your project key — that's it.
+                Point it at whyllm and add your project key — that's it.
               </p>
               <CodeBlock
                 lang="bash"
                 code={`export OPENAI_BASE_URL=http://localhost:17823/openai
-export WHYLLM_API_KEY=ld-prod_your_key_here
+export WHYLLM_API_KEY=wl-prod_your_key_here
 
 # Then run your app exactly as before
 python app.py`}
               />
               <p className="text-xs text-zinc-600 mt-2">
-                whyLLM forwards every request to OpenAI using your own OpenAI key
+                whyllm forwards every request to OpenAI using your own OpenAI key
                 (passed in the <code>Authorization</code> header by the SDK automatically).
               </p>
             </Section>
@@ -200,7 +200,7 @@ whyllm-run gunicorn app:app`}
               <CodeBlock
                 lang="bash"
                 code={`# Set these env vars once
-export WHYLLM_API_KEY=ld-prod_your_key_here
+export WHYLLM_API_KEY=wl-prod_your_key_here
 export WHYLLM_BASE_URL=http://localhost:17823`}
               />
             </Section>
@@ -217,7 +217,7 @@ export WHYLLM_BASE_URL=http://localhost:17823`}
 client = OpenAI(
     api_key="sk-...",                        # your own OpenAI key
     base_url="http://localhost:17823/openai",
-    default_headers={"X-WhyLLM-Key": "ld-prod_your_key_here"},
+    default_headers={"X-whyllm-Key": "wl-prod_your_key_here"},
 )
 
 # All your existing calls work unchanged
@@ -234,7 +234,7 @@ response = client.chat.completions.create(
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: "http://localhost:17823/openai",
-  defaultHeaders: { "X-WhyLLM-Key": "ld-prod_your_key_here" },
+  defaultHeaders: { "X-whyllm-Key": "wl-prod_your_key_here" },
 });`}
               />
               <p className="text-sm text-zinc-400 mt-4 mb-1">Anthropic (Python):</p>
@@ -245,7 +245,7 @@ const client = new OpenAI({
 client = anthropic.Anthropic(
     api_key="sk-ant-...",                         # your own Anthropic key
     base_url="http://localhost:17823/anthropic",
-    default_headers={"X-WhyLLM-Key": "ld-prod_your_key_here"},
+    default_headers={"X-whyllm-Key": "wl-prod_your_key_here"},
 )`}
               />
             </Section>
@@ -256,15 +256,15 @@ client = anthropic.Anthropic(
             >
               <p className="text-sm text-zinc-400 mt-4 mb-1">
                 If your stack already emits OpenTelemetry spans (Traceloop, OpenLLMetry,
-                LangChain, etc.), just redirect the OTLP exporter to whyLLM:
+                LangChain, etc.), just redirect the OTLP exporter to whyllm:
               </p>
               <CodeBlock
                 lang="bash"
                 code={`export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:17823/otlp
-export OTEL_EXPORTER_OTLP_HEADERS="X-WhyLLM-Key=ld-prod_your_key_here"`}
+export OTEL_EXPORTER_OTLP_HEADERS="X-whyllm-Key=wl-prod_your_key_here"`}
               />
               <p className="text-xs text-zinc-600 mt-2">
-                whyLLM parses OpenAI and Anthropic semantic conventions from your existing
+                whyllm parses OpenAI and Anthropic semantic conventions from your existing
                 spans. No new instrumentation required.
               </p>
             </Section>
@@ -297,7 +297,7 @@ from openai import OpenAI
 client = OpenAI(
     api_key=os.environ["OPENAI_API_KEY"],
     base_url="http://localhost:17823/openai",
-    default_headers={"X-WhyLLM-Key": os.environ["WHYLLM_API_KEY"]},
+    default_headers={"X-whyllm-Key": os.environ["WHYLLM_API_KEY"]},
 )
 
 resp = client.chat.completions.create(
@@ -305,7 +305,7 @@ resp = client.chat.completions.create(
     messages=[{"role": "user", "content": "Say hello in one word"}],
 )
 print(resp.choices[0].message.content)
-# → Now check the Traces tab in whyLLM`}
+# → Now check the Traces tab in whyllm`}
           />
         </div>
 
@@ -323,7 +323,7 @@ print(resp.choices[0].message.content)
             <a href="/dashboard/settings" className="text-lime-400 hover:text-lime-300 font-medium transition-colors">
               Settings → Budgets
             </a>{" "}
-            and create a daily budget. When your project hits the limit, whyLLM
+            and create a daily budget. When your project hits the limit, whyllm
             returns <code className="text-xs bg-zinc-800 text-zinc-300 px-1 rounded">HTTP 429</code> instead
             of forwarding the request — no surprise bills.
           </p>

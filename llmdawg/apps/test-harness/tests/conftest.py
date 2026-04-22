@@ -21,8 +21,8 @@ def _env():
     """Set required env vars for tests."""
     with patch.dict(os.environ, {
         "OPENAI_API_KEY": "sk-test-fake-key",
-        "LLMDAWG_API_KEY": "ld-test-fake-key",
-        "LLMDAWG_BASE_URL": "http://localhost:8000",
+        "WHYLLM_API_KEY": "ld-test-fake-key",
+        "WHYLLM_BASE_URL": "http://localhost:8000",
     }):
         yield
 
@@ -56,8 +56,8 @@ def mock_openai(_env):
     mock_client.chat.completions.create.return_value = _make_chat_response()
 
     with patch("test_harness.main.openai.OpenAI", return_value=mock_client), \
-         patch("test_harness.main.llmdawg.init"), \
-         patch("test_harness.main.llmdawg.wrap", return_value=mock_client):
+         patch("test_harness.main.whyllm.init"), \
+         patch("test_harness.main.whyllm.wrap", return_value=mock_client):
         yield mock_client
 
 

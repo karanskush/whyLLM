@@ -1,6 +1,6 @@
 # ============================================================
-# LLMDawg Makefile
-# All commands are run from the llmdawg/ monorepo root.
+# whyllm Makefile
+# All commands are run from the whyllm/ monorepo root.
 # ============================================================
 
 .PHONY: up down logs migrate shell-api test-api test-sdk build-api build-dashboard \
@@ -56,7 +56,7 @@ makemigration: ## Generate a new migration (usage: make makemigration MSG="add s
 	$(COMPOSE) exec $(API_SERVICE) alembic revision --autogenerate -m "$(MSG)"
 
 db-shell: ## Open a psql shell in the postgres container
-	$(COMPOSE) exec $(PG_SERVICE) psql -U llmdawg -d llmdawg
+	$(COMPOSE) exec $(PG_SERVICE) psql -U whyllm -d whyllm
 
 # ---- Development shells -------------------------------------
 
@@ -72,14 +72,14 @@ test-api: ## Run the full pytest suite inside the API container
 	$(COMPOSE) exec $(API_SERVICE) pytest -v --tb=short
 
 test-api-cov: ## Run tests with coverage report
-	$(COMPOSE) exec $(API_SERVICE) pytest --cov=llmdawg_api --cov-report=term-missing
+	$(COMPOSE) exec $(API_SERVICE) pytest --cov=whyllm_api --cov-report=term-missing
 
 # Run tests locally without Docker (requires venv activated)
 test-api-local: ## Run pytest locally (requires venv)
 	cd apps/api && pytest -v --tb=short
 
 worker-local: ## Start background worker locally (outside Docker, requires venv)
-	cd apps/api && python -m llmdawg_api.worker
+	cd apps/api && python -m whyllm_api.worker
 
 # ---- Linting & Type Checking --------------------------------
 
@@ -90,7 +90,7 @@ lint-fix: ## Run ruff with auto-fix on the API source
 	$(COMPOSE) exec $(API_SERVICE) ruff check src/ --fix
 
 typecheck-api: ## Run mypy on the API source
-	$(COMPOSE) exec $(API_SERVICE) mypy src/llmdawg_api
+	$(COMPOSE) exec $(API_SERVICE) mypy src/whyllm_api
 
 typecheck-dashboard: ## Run tsc type checking on the dashboard
 	cd apps/dashboard && npx tsc --noEmit
@@ -98,10 +98,10 @@ typecheck-dashboard: ## Run tsc type checking on the dashboard
 # ---- Build --------------------------------------------------
 
 build-api: ## Build the API Docker image
-	docker build -t llmdawg-api:local apps/api
+	docker build -t whyllm-api:local apps/api
 
 build-dashboard: ## Build the dashboard Docker image
-	docker build -t llmdawg-dashboard:local apps/dashboard
+	docker build -t whyllm-dashboard:local apps/dashboard
 
 # ---- Local Setup --------------------------------------------
 
@@ -132,7 +132,7 @@ clean: ## Remove Python bytecode, __pycache__, .next build artifacts
 
 help: ## Show this help message
 	@echo ""
-	@echo "LLMDawg — available make targets:"
+	@echo "whyllm — available make targets:"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'

@@ -20,7 +20,7 @@ from sqlalchemy.pool import NullPool
 # --------------------------------------------------------------------------
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 
 

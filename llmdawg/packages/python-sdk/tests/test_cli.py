@@ -1,4 +1,4 @@
-"""Tests for the LLMDawg CLI."""
+"""Tests for the whyllm CLI."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from llmdawg.cli import cli
+from whyllm.cli import cli
 
 
 def _runner() -> CliRunner:
@@ -17,7 +17,7 @@ def _runner() -> CliRunner:
 class TestVerifyCommand:
     def test_verify_success_exits_0(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.verify.return_value = True
             result = runner.invoke(cli, ["--api-key", "ld-test", "verify"])
@@ -26,7 +26,7 @@ class TestVerifyCommand:
 
     def test_verify_failure_exits_1(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.verify.return_value = False
             result = runner.invoke(cli, ["--api-key", "ld-test", "verify"])
@@ -35,7 +35,7 @@ class TestVerifyCommand:
 
     def test_verify_uses_base_url_option(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.verify.return_value = True
             instance.base_url = "http://custom:9000"
@@ -52,7 +52,7 @@ class TestVerifyCommand:
 class TestTestIngestCommand:
     def test_success_exits_0(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.ingest_span.return_value = None
             result = runner.invoke(cli, ["--api-key", "ld-test", "test-ingest"])
@@ -61,7 +61,7 @@ class TestTestIngestCommand:
 
     def test_failure_exits_1(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.ingest_span.side_effect = Exception("connection refused")
             result = runner.invoke(cli, ["--api-key", "ld-test", "test-ingest"])
@@ -70,7 +70,7 @@ class TestTestIngestCommand:
 
     def test_custom_model_and_provider(self):
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.ingest_span.return_value = None
             result = runner.invoke(
@@ -90,7 +90,7 @@ class TestTestIngestCommand:
     def test_span_has_required_fields(self):
         runner = _runner()
         captured_span: dict = {}
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
 
             def capture(span):
@@ -117,9 +117,9 @@ class TestTestIngestCommand:
 
 class TestApiKeyFromEnv:
     def test_api_key_from_env_var(self, monkeypatch):
-        monkeypatch.setenv("LLMDAWG_API_KEY", "ld-env-key")
+        monkeypatch.setenv("WHYLLM_API_KEY", "ld-env-key")
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.verify.return_value = True
             result = runner.invoke(cli, ["verify"])
@@ -127,9 +127,9 @@ class TestApiKeyFromEnv:
         assert result.exit_code == 0
 
     def test_base_url_from_env_var(self, monkeypatch):
-        monkeypatch.setenv("LLMDAWG_BASE_URL", "http://prod:8000")
+        monkeypatch.setenv("WHYLLM_BASE_URL", "http://prod:8000")
         runner = _runner()
-        with patch("llmdawg.cli.LLMDawgClient") as MockClient:
+        with patch("whyllm.cli.whyllmClient") as MockClient:
             instance = MockClient.return_value
             instance.verify.return_value = True
             runner.invoke(cli, ["--api-key", "ld-test", "verify"])

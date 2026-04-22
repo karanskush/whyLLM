@@ -1,11 +1,11 @@
-import type { LLMDawgConfig, SpanData } from "./types";
+import type { whyllmConfig, SpanData } from "./types";
 
-export class LLMDawgClient {
+export class whyllmClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly timeout: number;
 
-  constructor(config: LLMDawgConfig) {
+  constructor(config: whyllmConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl ?? "http://localhost:8000").replace(/\/$/, "");
     this.timeout = config.timeout ?? 5000;
@@ -20,7 +20,7 @@ export class LLMDawgClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-LLMDawg-Key": this.apiKey,
+          "X-whyllm-Key": this.apiKey,
         },
         body: JSON.stringify(span),
         signal: controller.signal,

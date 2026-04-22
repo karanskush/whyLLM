@@ -1,4 +1,4 @@
-export interface LLMDawgConfig {
+export interface whyllmConfig {
   apiKey: string;
   baseUrl?: string;
   /** Timeout in milliseconds for ingest calls. Default: 5000 */

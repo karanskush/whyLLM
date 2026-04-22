@@ -1,6 +1,6 @@
 """Alembic migration environment — async engine, reads settings from pydantic-settings.
 
-All ORM models are imported via llmdawg_api.models so their metadata is registered
+All ORM models are imported via whyllm_api.models so their metadata is registered
 with Base.metadata before autogenerate runs. Add new model modules to that package's
 __init__.py — no changes needed here.
 """
@@ -15,11 +15,11 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from llmdawg_api.config import get_settings
-from llmdawg_api.database import Base, _clean_database_url
+from whyllm_api.config import get_settings
+from whyllm_api.database import Base, _clean_database_url
 
 # Side-effect import — registers all ORM models with Base.metadata
-import llmdawg_api.models  # noqa: F401
+import whyllm_api.models  # noqa: F401
 
 config = context.config
 settings = get_settings()

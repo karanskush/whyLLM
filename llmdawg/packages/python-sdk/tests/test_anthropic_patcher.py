@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from llmdawg.wrappers.anthropic_wrapper import (
+from whyllm.wrappers.anthropic_wrapper import (
     _build_span,
     _build_stream_span,
     wrap_anthropic,

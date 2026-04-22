@@ -8,7 +8,7 @@ Provides a session-scoped event_loop so that:
   - All async test functions run in the same loop.
   - asyncpg connections created during lifespan are reusable across tests.
 
-Must run before any module imports llmdawg_api so that the lru_cache on
+Must run before any module imports whyllm_api so that the lru_cache on
 get_settings() captures the right values.
 """
 
@@ -26,14 +26,14 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 # ── Override env vars before any app module is imported ──────────────────────
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-min-32-chars-long!!")
 os.environ.setdefault("ENVIRONMENT", "development")
 
 # Bust the lru_cache on get_settings if it was already called
 try:
-    from llmdawg_api.config import get_settings
+    from whyllm_api.config import get_settings
     get_settings.cache_clear()
 except Exception:
     pass
@@ -64,12 +64,12 @@ async def reset_singletons_after_module():
     yield
     # Teardown — runs after the last test in this module
     try:
-        from llmdawg_api.database import close_engine
+        from whyllm_api.database import close_engine
         await close_engine()
     except Exception:
         pass
     try:
-        from llmdawg_api.redis_client import close_redis
+        from whyllm_api.redis_client import close_redis
         await close_redis()
     except Exception:
         pass

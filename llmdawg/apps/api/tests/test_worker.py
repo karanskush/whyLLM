@@ -110,7 +110,7 @@ class TestHallucinationScorer:
     """Unit tests for the pure-Python heuristic scorer."""
 
     def _scorer(self):
-        from llmdawg_api.services.hallucination import HallucinationScorer
+        from whyllm_api.services.hallucination import HallucinationScorer
         return HallucinationScorer()
 
     def _openai_response(self, text: str) -> dict:
@@ -241,7 +241,7 @@ class TestProcessOne:
     async def _run_pipeline(self, raw: bytes, redis_mock=None, session_mock=None,
                              cost_engine=None) -> tuple:
         """Helper: run _pipeline() with injected mocks."""
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
 
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
@@ -250,7 +250,7 @@ class TestProcessOne:
 
         factory, session = session_mock or _mock_session_factory()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         return worker._redis, factory, session
@@ -265,7 +265,7 @@ class TestProcessOne:
     async def test_total_tokens_not_in_values(self):
         """GENERATED ALWAYS AS STORED — total_tokens must never appear in INSERT."""
         raw = _make_span_payload()
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = _mock_redis()
@@ -281,7 +281,7 @@ class TestProcessOne:
         factory, session = _mock_session_factory()
         session.execute = capture_execute
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         # Verify total_tokens not in the INSERT statement's compiled string
@@ -297,13 +297,13 @@ class TestProcessOne:
         engine = _mock_cost_engine()
         factory, session = _mock_session_factory()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = _mock_redis()
         worker._cost_engine = engine
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         engine.estimate.assert_called_once_with("openai", "gpt-4o", 100, 50, 5)
@@ -313,14 +313,14 @@ class TestProcessOne:
         factory, session = _mock_session_factory()
         redis = _mock_redis()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
-            with patch("llmdawg_api.services.hallucination.HallucinationScorer") as mock_scorer:
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
+            with patch("whyllm_api.services.hallucination.HallucinationScorer") as mock_scorer:
                 await worker._pipeline(raw)
                 # HallucinationScorer.score should NOT be called for error spans
                 mock_scorer.return_value.score.assert_not_called()
@@ -329,14 +329,14 @@ class TestProcessOne:
         raw = _make_span_payload(status="success", response=None)
         factory, session = _mock_session_factory()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = _mock_redis()
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
-            with patch("llmdawg_api.services.hallucination.HallucinationScorer") as mock_scorer:
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
+            with patch("whyllm_api.services.hallucination.HallucinationScorer") as mock_scorer:
                 await worker._pipeline(raw)
                 mock_scorer.return_value.score.assert_not_called()
 
@@ -348,13 +348,13 @@ class TestProcessOne:
         redis = _mock_redis()
         factory, session = _mock_session_factory()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         expected_channel = f"project:{project_id}:spans"
@@ -373,13 +373,13 @@ class TestProcessOne:
         factory, session = _mock_session_factory()
         redis = _mock_redis()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         # DB should be called at least twice: once for span, once for trace
@@ -390,13 +390,13 @@ class TestProcessOne:
         raw = _make_span_payload(trace_id=None)
         factory, session = _mock_session_factory()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = _mock_redis()
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._pipeline(raw)
 
         # Only one DB call (span upsert, no trace upsert)
@@ -406,7 +406,7 @@ class TestProcessOne:
         raw = b"not valid json at all {{{"
         redis = _mock_redis()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
@@ -423,7 +423,7 @@ class TestProcessOne:
 
         redis = _mock_redis()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
@@ -438,13 +438,13 @@ class TestProcessOne:
         redis = _mock_redis()
         factory, session = _mock_session_factory()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
         worker._cost_engine = _mock_cost_engine()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             await worker._process_one(raw)
 
         redis.incr.assert_called_with("worker:spans_processed")
@@ -453,7 +453,7 @@ class TestProcessOne:
         raw = _make_span_payload()
         redis = _mock_redis()
 
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
         worker = IngestWorker(max_retries=2)
         worker.shutdown_event = asyncio.Event()
         worker._redis = redis
@@ -469,7 +469,7 @@ class TestProcessOne:
             nonlocal call_count
             call_count += 1
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             with patch("asyncio.sleep", side_effect=fast_sleep):
                 await worker._process_one(raw, attempt=0)
 
@@ -485,7 +485,7 @@ class TestWorkerLifecycle:
     """Tests for start/stop lifecycle and concurrency control."""
 
     async def test_semaphore_initialized_with_correct_concurrency(self):
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
 
         worker = IngestWorker(concurrency=10)
         worker._redis = _mock_redis()
@@ -496,7 +496,7 @@ class TestWorkerLifecycle:
         assert worker._semaphore._value == 10  # type: ignore[attr-defined]
 
     async def test_consumer_loop_stops_on_shutdown_event(self):
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
 
         redis = _mock_redis()
         redis.brpop = AsyncMock(return_value=None)  # always timeout
@@ -520,7 +520,7 @@ class TestWorkerLifecycle:
         # If we reach here, the loop stopped correctly
 
     async def test_in_flight_tasks_tracked(self):
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
 
         worker = IngestWorker()
         worker._redis = _mock_redis()
@@ -531,7 +531,7 @@ class TestWorkerLifecycle:
 
         factory, session = _mock_session_factory()
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=factory):
             raw = _make_span_payload()
             task = asyncio.create_task(worker._process_with_semaphore(raw))
             worker._in_flight.add(task)
@@ -553,7 +553,7 @@ class TestWorkerIntegration:
         from sqlalchemy.pool import NullPool
         db_url = os.environ.get(
             "DATABASE_URL",
-            "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+            "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
         )
         # NullPool: no connection kept alive between tests — avoids loop-attach issues
         return create_async_engine(db_url, poolclass=NullPool)
@@ -568,8 +568,8 @@ class TestWorkerIntegration:
 
     async def test_pipeline_writes_span_to_db(self, int_engine, int_redis):
         """Push a span payload through the full pipeline and verify the DB row."""
-        from llmdawg_api.worker.worker import IngestWorker
-        from llmdawg_api.database import get_session_factory
+        from whyllm_api.worker.worker import IngestWorker
+        from whyllm_api.database import get_session_factory
 
         span_id = str(uuid.uuid4())
         project_id = str(uuid.uuid4())
@@ -611,12 +611,12 @@ class TestWorkerIntegration:
         worker.shutdown_event = asyncio.Event()
         worker._redis = int_redis
         # Use real CostEngine seeded from file
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
         engine = CostEngine()
         engine._seed_from_json()
         worker._cost_engine = engine
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=int_factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=int_factory):
             await worker._pipeline(raw)
 
         # Verify the span is in the DB
@@ -654,7 +654,7 @@ class TestWorkerIntegration:
 
     async def test_pipeline_with_trace_id_upserts_trace(self, int_engine, int_redis):
         """Span with trace_id should create/update a trace row."""
-        from llmdawg_api.worker.worker import IngestWorker
+        from whyllm_api.worker.worker import IngestWorker
 
         trace_id = str(uuid.uuid4())
         span_id = str(uuid.uuid4())
@@ -695,12 +695,12 @@ class TestWorkerIntegration:
         worker = IngestWorker()
         worker.shutdown_event = asyncio.Event()
         worker._redis = int_redis
-        from llmdawg_api.services.cost import CostEngine
+        from whyllm_api.services.cost import CostEngine
         ce = CostEngine()
         ce._seed_from_json()
         worker._cost_engine = ce
 
-        with patch("llmdawg_api.worker.worker.get_session_factory", return_value=int_factory):
+        with patch("whyllm_api.worker.worker.get_session_factory", return_value=int_factory):
             await worker._pipeline(raw)
 
         # Check trace row was created

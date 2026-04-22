@@ -1,4 +1,4 @@
-"""Test prompt definitions for exercising LLMDawg observability."""
+"""Test prompt definitions for exercising whyllm observability."""
 
 from __future__ import annotations
 

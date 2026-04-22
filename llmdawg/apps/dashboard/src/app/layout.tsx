@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "whyLLM — LLM Observability",
+  title: "whyllm — LLM Observability",
   description: "Production observability platform for LLM calls",
 };
 

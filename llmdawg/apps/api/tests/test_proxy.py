@@ -8,7 +8,7 @@ Test classes:
   TestProxyOpenAI        — non-streaming, headers, 4xx passthrough, budget, auth, enqueue
   TestProxyAnthropic     — mirrors OpenAI (different auth header + token field names)
   TestBudgetGate         — below budget passes, at/over budget blocked, Redis failure
-  TestHeaderStripping    — LLMDawg and hop-by-hop headers not forwarded
+  TestHeaderStripping    — whyllm and hop-by-hop headers not forwarded
   TestProxyUtils         — unit tests for SSE parsers and enqueue_proxy_span
 """
 
@@ -31,7 +31,7 @@ from httpx import ASGITransport, AsyncClient
 
 _TEST_DB_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://llmdawg:llmdawg@localhost:5433/llmdawg",
+    "postgresql+asyncpg://whyllm:whyllm@localhost:5433/whyllm",
 )
 
 _OPENAI_KEY = "sk-test-openai-key"
@@ -83,8 +83,8 @@ async def proxy_db_ids():
 @pytest_asyncio.fixture(scope="module")
 async def proxy_client(proxy_db_ids):
     """Module-scoped ASGI test client."""
-    from llmdawg_api.main import create_app
-    from llmdawg_api.services.cost import CostEngine
+    from whyllm_api.main import create_app
+    from whyllm_api.services.cost import CostEngine
 
     app = create_app()
     cost_engine = CostEngine()
@@ -172,13 +172,13 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(200, json=_openai_chat_response())
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("llmdawg_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
                 "/openai/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
+                headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
 
         assert response.status_code == 200
@@ -190,19 +190,19 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(401, json={"error": {"message": "Invalid API key"}})
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("llmdawg_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
                 "/openai/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
+                headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
 
         assert response.status_code == 401
 
-    async def test_missing_llmdawg_key_returns_401(self, proxy_client):
-        """Missing X-LLMDawg-Key header returns 401 before forwarding."""
+    async def test_missing_whyllm_key_returns_401(self, proxy_client):
+        """Missing X-whyllm-Key header returns 401 before forwarding."""
         response = await proxy_client.post(
             "/openai/v1/chat/completions",
             json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
@@ -216,7 +216,7 @@ class TestProxyOpenAI:
         response = await proxy_client.post(
             "/openai/v1/chat/completions",
             json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-            headers={"X-LLMDawg-Key": raw_key},
+            headers={"X-whyllm-Key": raw_key},
         )
 
         assert response.status_code == 401
@@ -237,13 +237,13 @@ class TestProxyOpenAI:
 
         r.lpush = capture_lpush
 
-        with patch("llmdawg_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=r):
+        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=r):
 
             response = await proxy_client.post(
                 "/openai/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
+                headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
             # Sleep inside patch context so background task sees the mock
             await asyncio.sleep(0.1)
@@ -257,8 +257,8 @@ class TestProxyOpenAI:
         assert span["input_tokens"] == 10
         assert span["output_tokens"] == 5
 
-    async def test_llmdawg_headers_not_forwarded(self, proxy_client, proxy_db_ids):
-        """X-LLMDawg-* headers must not reach the upstream provider."""
+    async def test_whyllm_headers_not_forwarded(self, proxy_client, proxy_db_ids):
+        """X-whyllm-* headers must not reach the upstream provider."""
         raw_key = proxy_db_ids["raw_key"]
         captured_headers: dict[str, str] = {}
 
@@ -269,22 +269,22 @@ class TestProxyOpenAI:
         mock_client = MagicMock()
         mock_client.request = capture_request
 
-        with patch("llmdawg_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             await proxy_client.post(
                 "/openai/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={
-                    "X-LLMDawg-Key": raw_key,
-                    "X-LLMDawg-Custom": "should-be-stripped",
+                    "X-whyllm-Key": raw_key,
+                    "X-whyllm-Custom": "should-be-stripped",
                     "Authorization": f"Bearer {_OPENAI_KEY}",
                 },
             )
 
         lower_keys = {k.lower() for k in captured_headers}
-        assert "x-llmdawg-key" not in lower_keys
-        assert "x-llmdawg-custom" not in lower_keys
+        assert "x-whyllm-key" not in lower_keys
+        assert "x-whyllm-custom" not in lower_keys
         # User's own key passes through unchanged (headers may be lowercased in transit)
         auth = captured_headers.get("Authorization") or captured_headers.get("authorization")
         assert auth == f"Bearer {_OPENAI_KEY}"
@@ -305,14 +305,14 @@ class TestProxyOpenAI:
         session.__aenter__ = AsyncMock(return_value=session)
         session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("llmdawg_api.proxy.utils.get_redis", return_value=r), \
-             patch("llmdawg_api.proxy.utils.get_session_factory",
+        with patch("whyllm_api.proxy.utils.get_redis", return_value=r), \
+             patch("whyllm_api.proxy.utils.get_session_factory",
                    return_value=MagicMock(return_value=session)):
 
             response = await proxy_client.post(
                 "/openai/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
+                headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
 
         assert response.status_code == 429
@@ -324,12 +324,12 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(200, json={"object": "list", "data": []})
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("llmdawg_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.get(
                 "/openai/v1/models",
-                headers={"X-LLMDawg-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
+                headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
 
         assert response.status_code == 200
@@ -347,14 +347,14 @@ class TestProxyAnthropic:
         upstream_resp = httpx.Response(200, json=_anthropic_chat_response())
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("llmdawg_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
                 "/anthropic/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
+                headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
             )
 
         assert response.status_code == 200
@@ -372,14 +372,14 @@ class TestProxyAnthropic:
         mock_client = MagicMock()
         mock_client.request = capture_request
 
-        with patch("llmdawg_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             await proxy_client.post(
                 "/anthropic/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
+                headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
             )
 
         lower_keys = {k.lower() for k in captured_headers}
@@ -387,8 +387,8 @@ class TestProxyAnthropic:
         assert "x-api-key" in lower_keys
         assert captured_headers.get("x-api-key") == _ANTHROPIC_KEY
         assert "anthropic-version" in lower_keys
-        # LLMDawg key must be stripped
-        assert "x-llmdawg-key" not in lower_keys
+        # whyllm key must be stripped
+        assert "x-whyllm-key" not in lower_keys
 
     async def test_upstream_4xx_passed_through(self, proxy_client, proxy_db_ids):
         """Anthropic 4xx responses are passed through unchanged."""
@@ -398,14 +398,14 @@ class TestProxyAnthropic:
         )
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("llmdawg_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
                 "/anthropic/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
+                headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
             )
 
         assert response.status_code == 400
@@ -418,7 +418,7 @@ class TestProxyAnthropic:
             "/anthropic/v1/messages",
             json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                   "messages": [{"role": "user", "content": "hi"}]},
-            headers={"X-LLMDawg-Key": raw_key},
+            headers={"X-whyllm-Key": raw_key},
         )
 
         assert response.status_code == 401
@@ -439,14 +439,14 @@ class TestProxyAnthropic:
 
         r.lpush = capture_lpush
 
-        with patch("llmdawg_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("llmdawg_api.proxy.utils.get_redis", return_value=r):
+        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=r):
 
             await proxy_client.post(
                 "/anthropic/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
-                headers={"X-LLMDawg-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
+                headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
             )
             # Sleep inside patch context so background task sees the mock
             await asyncio.sleep(0.1)
@@ -467,9 +467,9 @@ class TestBudgetGate:
 
     async def test_no_spend_in_redis_passes(self):
         """No spend in Redis → budget gate passes without DB query."""
-        from llmdawg_api.proxy.utils import check_budget
+        from whyllm_api.proxy.utils import check_budget
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis:
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis:
             r = AsyncMock()
             r.get = AsyncMock(return_value=None)
             mock_redis.return_value = r
@@ -477,7 +477,7 @@ class TestBudgetGate:
 
     async def test_spend_below_limit_passes(self):
         """$3 spent with $10 limit: passes without 429."""
-        from llmdawg_api.proxy.utils import check_budget
+        from whyllm_api.proxy.utils import check_budget
 
         session = AsyncMock()
         row = MagicMock()
@@ -488,8 +488,8 @@ class TestBudgetGate:
         session.__aenter__ = AsyncMock(return_value=session)
         session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis, \
-             patch("llmdawg_api.proxy.utils.get_session_factory",
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis, \
+             patch("whyllm_api.proxy.utils.get_session_factory",
                    return_value=MagicMock(return_value=session)):
             r = AsyncMock()
             r.get = AsyncMock(return_value="3.00")
@@ -498,7 +498,7 @@ class TestBudgetGate:
 
     async def test_spend_over_limit_raises_429(self):
         """$10 spent with $5 limit: raises HTTP 429."""
-        from llmdawg_api.proxy.utils import check_budget
+        from whyllm_api.proxy.utils import check_budget
         from fastapi import HTTPException
 
         session = AsyncMock()
@@ -510,8 +510,8 @@ class TestBudgetGate:
         session.__aenter__ = AsyncMock(return_value=session)
         session.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis, \
-             patch("llmdawg_api.proxy.utils.get_session_factory",
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis, \
+             patch("whyllm_api.proxy.utils.get_session_factory",
                    return_value=MagicMock(return_value=session)):
             r = AsyncMock()
             r.get = AsyncMock(return_value="10.00")
@@ -525,9 +525,9 @@ class TestBudgetGate:
 
     async def test_redis_failure_is_nonfatal(self):
         """Budget gate silently passes if Redis raises."""
-        from llmdawg_api.proxy.utils import check_budget
+        from whyllm_api.proxy.utils import check_budget
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis:
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis:
             r = AsyncMock()
             r.get = AsyncMock(side_effect=ConnectionError("Redis down"))
             mock_redis.return_value = r
@@ -539,20 +539,20 @@ class TestBudgetGate:
 class TestHeaderStripping:
     """Unit tests for strip_proxy_headers."""
 
-    def test_strips_llmdawg_prefixed_headers(self):
-        from llmdawg_api.proxy.utils import strip_proxy_headers
+    def test_strips_whyllm_prefixed_headers(self):
+        from whyllm_api.proxy.utils import strip_proxy_headers
         headers = {
-            "X-LLMDawg-Key": "ld-test",
-            "X-LLMDawg-Custom": "value",
+            "X-whyllm-Key": "ld-test",
+            "X-whyllm-Custom": "value",
             "Content-Type": "application/json",
         }
         result = strip_proxy_headers(headers)
-        assert "X-LLMDawg-Key" not in result
-        assert "X-LLMDawg-Custom" not in result
+        assert "X-whyllm-Key" not in result
+        assert "X-whyllm-Custom" not in result
         assert result["Content-Type"] == "application/json"
 
     def test_strips_hop_by_hop_headers(self):
-        from llmdawg_api.proxy.utils import strip_proxy_headers
+        from whyllm_api.proxy.utils import strip_proxy_headers
         headers = {
             "Host": "localhost:8000",
             "Content-Length": "42",
@@ -570,11 +570,11 @@ class TestHeaderStripping:
         assert "Accept" in result
 
     def test_empty_headers_returns_empty_dict(self):
-        from llmdawg_api.proxy.utils import strip_proxy_headers
+        from whyllm_api.proxy.utils import strip_proxy_headers
         assert strip_proxy_headers({}) == {}
 
     def test_preserves_custom_headers(self):
-        from llmdawg_api.proxy.utils import strip_proxy_headers
+        from whyllm_api.proxy.utils import strip_proxy_headers
         headers = {"X-Custom-Header": "value", "Accept-Language": "en-US"}
         result = strip_proxy_headers(headers)
         assert result == headers
@@ -587,7 +587,7 @@ class TestProxyUtils:
 
     def test_parse_openai_sse_extracts_content_and_usage(self):
         import time
-        from llmdawg_api.proxy.utils import parse_openai_sse
+        from whyllm_api.proxy.utils import parse_openai_sse
         chunks = _openai_stream_chunks("Hi there")
         result = parse_openai_sse(chunks, "gpt-4o", time.perf_counter() - 0.1, ttft_ms=50)
         assert result["provider"] == "openai"
@@ -602,14 +602,14 @@ class TestProxyUtils:
 
     def test_parse_openai_sse_empty_is_cancelled(self):
         import time
-        from llmdawg_api.proxy.utils import parse_openai_sse
+        from whyllm_api.proxy.utils import parse_openai_sse
         result = parse_openai_sse([], "gpt-4o", time.perf_counter(), ttft_ms=None)
         assert result["status"] == "cancelled"
         assert result["response"] is None
 
     def test_parse_anthropic_sse_extracts_content(self):
         import time
-        from llmdawg_api.proxy.utils import parse_anthropic_sse
+        from whyllm_api.proxy.utils import parse_anthropic_sse
         chunks = _anthropic_stream_chunks("Hi there")
         result = parse_anthropic_sse(chunks, "claude-3-5-sonnet-20241022",
                                      time.perf_counter() - 0.1, ttft_ms=60)
@@ -621,19 +621,19 @@ class TestProxyUtils:
 
     def test_parse_anthropic_sse_empty_is_cancelled(self):
         import time
-        from llmdawg_api.proxy.utils import parse_anthropic_sse
+        from whyllm_api.proxy.utils import parse_anthropic_sse
         result = parse_anthropic_sse([], "claude-3-5-sonnet-20241022",
                                      time.perf_counter(), ttft_ms=None)
         assert result["status"] == "cancelled"
 
     async def test_enqueue_proxy_span_never_raises(self):
         """enqueue_proxy_span is fire-and-forget — Redis failure is silently swallowed."""
-        from llmdawg_api.proxy.utils import enqueue_proxy_span
-        from llmdawg_api.middleware.api_key_auth import KeyContext
+        from whyllm_api.proxy.utils import enqueue_proxy_span
+        from whyllm_api.middleware.api_key_auth import KeyContext
 
         ctx = KeyContext(uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis:
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis:
             r = AsyncMock()
             r.lpush = AsyncMock(side_effect=ConnectionError("Redis gone"))
             mock_redis.return_value = r
@@ -643,8 +643,8 @@ class TestProxyUtils:
 
     async def test_enqueue_adds_proxy_metadata(self):
         """Enqueued span includes source=proxy, project_id, org_id."""
-        from llmdawg_api.proxy.utils import enqueue_proxy_span
-        from llmdawg_api.middleware.api_key_auth import KeyContext
+        from whyllm_api.proxy.utils import enqueue_proxy_span
+        from whyllm_api.middleware.api_key_auth import KeyContext
 
         project_id = uuid.uuid4()
         org_id = uuid.uuid4()
@@ -652,7 +652,7 @@ class TestProxyUtils:
 
         enqueued: list[bytes] = []
 
-        with patch("llmdawg_api.proxy.utils.get_redis") as mock_redis:
+        with patch("whyllm_api.proxy.utils.get_redis") as mock_redis:
             r = AsyncMock()
 
             async def capture(queue, payload):
