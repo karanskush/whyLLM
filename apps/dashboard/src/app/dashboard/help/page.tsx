@@ -168,7 +168,7 @@ export default function OnboardingGuidePage() {
               </p>
               <CodeBlock
                 lang="bash"
-                code={`export OPENAI_BASE_URL=http://localhost:17823/openai
+                code={`export OPENAI_BASE_URL=http://localhost:17823/proxy/v1
 export WHYLLM_API_KEY=wl-prod_your_key_here
 
 # Then run your app exactly as before
@@ -216,7 +216,7 @@ export WHYLLM_BASE_URL=http://localhost:17823`}
 
 client = OpenAI(
     api_key="sk-...",                        # your own OpenAI key
-    base_url="http://localhost:17823/openai",
+    base_url="http://localhost:17823/proxy/v1",
     default_headers={"X-whyllm-Key": "wl-prod_your_key_here"},
 )
 
@@ -233,7 +233,7 @@ response = client.chat.completions.create(
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "http://localhost:17823/openai",
+  baseURL: "http://localhost:17823/proxy/v1",
   defaultHeaders: { "X-whyllm-Key": "wl-prod_your_key_here" },
 });`}
               />
@@ -244,7 +244,7 @@ const client = new OpenAI({
 
 client = anthropic.Anthropic(
     api_key="sk-ant-...",                         # your own Anthropic key
-    base_url="http://localhost:17823/anthropic",
+    base_url="http://localhost:17823/proxy",
     default_headers={"X-whyllm-Key": "wl-prod_your_key_here"},
 )`}
               />
@@ -296,7 +296,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key=os.environ["OPENAI_API_KEY"],
-    base_url="http://localhost:17823/openai",
+    base_url="http://localhost:17823/proxy/v1",
     default_headers={"X-whyllm-Key": os.environ["WHYLLM_API_KEY"]},
 )
 

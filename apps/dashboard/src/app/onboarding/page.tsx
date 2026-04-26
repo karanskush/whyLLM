@@ -10,6 +10,29 @@ import { cn } from "@/lib/utils";
 
 type Step = "create" | "integrate";
 
+type Provider = "openai" | "azure" | "anthropic" | "bedrock" | "custom";
+
+function inferProvider(url: string): Provider {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith(".openai.azure.com")) return "azure";
+    if (host === "api.openai.com") return "openai";
+    if (host === "api.anthropic.com") return "anthropic";
+    if (host.endsWith(".amazonaws.com") && host.includes("bedrock")) return "bedrock";
+    return "custom";
+  } catch {
+    return "custom";
+  }
+}
+
+const PROVIDER_LABEL: Record<Provider, string> = {
+  openai: "OpenAI",
+  azure: "Azure OpenAI",
+  anthropic: "Anthropic",
+  bedrock: "AWS Bedrock",
+  custom: "Custom / OpenAI-compatible",
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -20,31 +43,42 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<Step>("create");
   const [projectName, setProjectName] = useState("");
+  const [upstreamUrl, setUpstreamUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [rawKey, setRawKey] = useState<string | null>(null);
+  const [savedUpstream, setSavedUpstream] = useState<string | null>(null);
+  const [savedProvider, setSavedProvider] = useState<Provider | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const providerPreview = upstreamUrl.trim() ? inferProvider(upstreamUrl.trim()) : null;
+
   const handleCreate = async () => {
-    if (!token || !projectName.trim()) return;
+    if (!token || !projectName.trim() || !upstreamUrl.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const project = await projects.create({ name: projectName.trim() }, token);
+      const project = await projects.create(
+        { name: projectName.trim(), upstream_base_url: upstreamUrl.trim() },
+        token,
+      );
       const key = await settings.createApiKey(
         project.id,
         { name: "Default", environment: "production" },
         token,
       );
       setProjectId(project.id);
-      setCreatedProjectId(project.id);
       setRawKey(key.raw_key);
+      setSavedUpstream(project.upstream_base_url);
+      setSavedProvider((project.upstream_provider as Provider | null) ?? null);
       setStep("integrate");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(`Failed to create project (${err.status}). Please try again.`);
+        setError(
+          (err.detail as { detail?: { message?: string } })?.detail?.message ||
+            `Failed to create project (${err.status}). Please try again.`,
+        );
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -59,20 +93,56 @@ export default function OnboardingPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const proxyUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const proxyBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  const openaiSnippet = `import os
-from openai import OpenAI
+  // Two numbers the developer needs to paste into their existing SDK client:
+  // the new base URL, and the X-whyllm-Key header. Provider shape differs
+  // only in which client-config field holds the URL.
+  //
+  // OpenAI + custom:  base_url               →  {proxy}/proxy/v1
+  // Azure OpenAI:     azure_endpoint         →  {proxy}/proxy
+  // Anthropic:        base_url               →  {proxy}/proxy
+  const buildSnippet = (): {
+    urlField: string;       // the SDK config field the developer edits
+    urlValue: string;       // the new URL to paste
+    headerLine: string;     // the header to add
+    env: string;            // alt: zero-code env-var version
+  } => {
+    const key = rawKey ?? "wl-prod_...";
+    const headerLine = `X-whyllm-Key: ${key}`;
 
-client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"],  # your own key
-    base_url="${proxyUrl}/openai",
-    default_headers={"X-whyllm-Key": "${rawKey ?? "ld-prod-..."}"},
-)`;
+    if (savedProvider === "azure") {
+      return {
+        urlField: "azure_endpoint",
+        urlValue: `${proxyBase}/proxy`,
+        headerLine,
+        env: `export AZURE_OPENAI_ENDPOINT=${proxyBase}/proxy
+export WHYLLM_API_KEY=${key}
+# Keep AZURE_OPENAI_API_KEY / AZURE_OPENAI_API_VERSION as-is`,
+      };
+    }
+    if (savedProvider === "anthropic") {
+      return {
+        urlField: "base_url",
+        urlValue: `${proxyBase}/proxy`,
+        headerLine,
+        env: `export ANTHROPIC_BASE_URL=${proxyBase}/proxy
+export WHYLLM_API_KEY=${key}
+# Keep ANTHROPIC_API_KEY as-is`,
+      };
+    }
+    // OpenAI / custom OpenAI-compatible
+    return {
+      urlField: "base_url",
+      urlValue: `${proxyBase}/proxy/v1`,
+      headerLine,
+      env: `export OPENAI_BASE_URL=${proxyBase}/proxy/v1
+export WHYLLM_API_KEY=${key}
+# Keep OPENAI_API_KEY as-is`,
+    };
+  };
 
-  const envSnippet = `# Zero code changes — just set these env vars
-export OPENAI_BASE_URL=${proxyUrl}/openai
-export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
+  const snippet = buildSnippet();
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
@@ -132,20 +202,42 @@ export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder="e.g. Production API, Chatbot, RAG Pipeline"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors mb-4"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors mb-5"
               autoFocus
             />
+
+            <h2 className="text-base font-semibold text-white mb-1">Where does your LLM live?</h2>
+            <p className="text-sm text-zinc-500 mb-3">
+              The base URL your app already talks to. We infer the provider from the
+              hostname — no keys, no version numbers, no dropdowns.
+            </p>
+            <input
+              type="text"
+              value={upstreamUrl}
+              onChange={(e) => setUpstreamUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              placeholder="https://api.openai.com or https://<resource>.openai.azure.com"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 font-mono focus:outline-none focus:border-zinc-600 transition-colors"
+            />
+            {providerPreview && (
+              <p className="mt-2 text-xs text-zinc-500">
+                Detected:{" "}
+                <span className="font-semibold text-lime-400">
+                  {PROVIDER_LABEL[providerPreview]}
+                </span>
+              </p>
+            )}
+
             {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-400 mb-4">
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-400 mt-4">
                 {error}
               </div>
             )}
             <button
               onClick={handleCreate}
-              disabled={!projectName.trim() || loading || !token}
-              className="w-full py-2.5 rounded-lg bg-lime-500 text-black text-sm font-semibold hover:bg-lime-400 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              disabled={!projectName.trim() || !upstreamUrl.trim() || loading || !token}
+              className="mt-5 w-full py-2.5 rounded-lg bg-lime-500 text-black text-sm font-semibold hover:bg-lime-400 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {loading ? "Creating…" : (
                 <>
@@ -166,6 +258,15 @@ export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
                 <Check className="w-4 h-4 text-emerald-400" />
                 <h2 className="text-base font-semibold text-white">Project created</h2>
               </div>
+              {savedProvider && savedUpstream && (
+                <p className="text-xs text-zinc-500 mt-1">
+                  Routing to{" "}
+                  <span className="font-semibold text-zinc-300">
+                    {PROVIDER_LABEL[savedProvider]}
+                  </span>
+                  {" "}at <code className="font-mono">{savedUpstream}</code>
+                </p>
+              )}
               <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2 border border-amber-500/20 mb-4 mt-3">
                 Copy your API key now — it will never be shown again.
               </p>
@@ -198,9 +299,9 @@ export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
                   Option A — Zero code (env vars)
                 </p>
                 <div className="relative bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                  <pre className="text-xs text-zinc-300 overflow-x-auto whitespace-pre">{envSnippet}</pre>
+                  <pre className="text-xs text-zinc-300 overflow-x-auto whitespace-pre">{snippet.env}</pre>
                   <button
-                    onClick={() => copyToClipboard(envSnippet, "env")}
+                    onClick={() => copyToClipboard(snippet.env, "env")}
                     className="absolute top-2 right-2 p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors"
                   >
                     {copied === "env" ? (
@@ -212,24 +313,61 @@ export WHYLLM_API_KEY=${rawKey ?? "ld-prod-..."}`;
                 </div>
               </div>
 
-              {/* Option B: code */}
+              {/* Option B: two-line patch */}
               <div>
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                  Option B — Proxy URL (Python)
+                  Option B — Two changes to your existing client
                 </p>
-                <div className="relative bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                  <pre className="text-xs text-zinc-300 overflow-x-auto whitespace-pre">{openaiSnippet}</pre>
-                  <button
-                    onClick={() => copyToClipboard(openaiSnippet, "code")}
-                    className="absolute top-2 right-2 p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors"
-                  >
-                    {copied === "code" ? (
-                      <Check className="w-3 h-3 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3 h-3 text-zinc-400" />
-                    )}
-                  </button>
+                <div className="space-y-2">
+                  {/* Change 1: URL */}
+                  <div className="flex items-center gap-3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-lime-500/10 text-lime-400 text-xs font-bold flex items-center justify-center">
+                      1
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-zinc-500 mb-0.5">
+                        Set <code className="font-mono text-zinc-400">{snippet.urlField}</code> to
+                      </p>
+                      <code className="font-mono text-xs text-zinc-200 break-all">{snippet.urlValue}</code>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(snippet.urlValue, "url")}
+                      className="flex-shrink-0 p-1 rounded hover:bg-zinc-800 transition-colors"
+                      title="Copy URL"
+                    >
+                      {copied === "url" ? (
+                        <Check className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-zinc-500" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Change 2: header */}
+                  <div className="flex items-center gap-3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-lime-500/10 text-lime-400 text-xs font-bold flex items-center justify-center">
+                      2
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-zinc-500 mb-0.5">Add this request header</p>
+                      <code className="font-mono text-xs text-zinc-200 break-all">{snippet.headerLine}</code>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(snippet.headerLine, "header")}
+                      className="flex-shrink-0 p-1 rounded hover:bg-zinc-800 transition-colors"
+                      title="Copy header"
+                    >
+                      {copied === "header" ? (
+                        <Check className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-zinc-500" />
+                      )}
+                    </button>
+                  </div>
                 </div>
+                <p className="text-xs text-zinc-600 mt-2">
+                  Your provider key stays in its existing header — we pass it through untouched.
+                </p>
               </div>
             </div>
 

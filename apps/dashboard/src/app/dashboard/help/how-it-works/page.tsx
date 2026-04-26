@@ -164,8 +164,8 @@ export default function HowItWorksPage() {
           </p>
 
           <div className="space-y-2">
-            <PropRow label="OpenAI endpoint" value="http://localhost:17823/openai  →  api.openai.com" />
-            <PropRow label="Anthropic endpoint" value="http://localhost:17823/anthropic  →  api.anthropic.com" />
+            <PropRow label="Proxy endpoint" value="http://localhost:17823/proxy  →  your configured upstream" />
+            <PropRow label="Upstream provider" value="Inferred from the base URL you set at project creation (OpenAI, Azure, Anthropic, Bedrock, custom)" />
             <PropRow label="OTLP endpoint" value="http://localhost:17823/otlp  (existing OTel stacks)" />
             <PropRow label="Your key" value="Passed through unchanged. Never logged, never stored." />
             <PropRow label="Added latency" value="< 1 ms on localhost (pure async passthrough)" />

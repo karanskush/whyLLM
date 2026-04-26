@@ -116,6 +116,7 @@ export interface SpanListItem {
   model: string;
   status: string;
   kind: string;
+  name: string | null;
   environment: string;
   user_id: string | null;
   session_id: string | null;
@@ -125,9 +126,34 @@ export interface SpanListItem {
   cost_usd: string | null;
   latency_ms: number | null;
   ttft_ms: number | null;
+  proxy_overhead_ms: number | null;
   hallucination_score: string | null;
   source: string;
   started_at: string | null;
+}
+
+export interface SpanTimings {
+  // Provider self-reported server-side time (openai-processing-ms etc.)
+  provider_processing_ms?: number;
+  // Our observed TTFT (stream) or latency (non-stream) minus provider time
+  network_rtt_ms?: number;
+  provider_request_id?: string;
+  provider_region?: string;
+  provider?: string;
+  rate_limit_remaining_tokens?: number;
+  rate_limit_remaining_requests?: number;
+  // Streaming-only rhythm data
+  chunk_count?: number;
+  first_chunk_ms?: number;
+  last_chunk_ms?: number;
+  inter_chunk_p50_ms?: number;
+  inter_chunk_p95_ms?: number;
+  inter_chunk_max_ms?: number;
+  stall_count?: number;
+  stall_total_ms?: number;
+  stalls?: { at_ms: number; duration_ms: number }[];
+  // [[arrival_ms, bytes], ...] — downsampled to ≤120 points
+  timeline?: [number, number][];
 }
 
 export interface SpanDetailResponse extends SpanListItem {
@@ -140,6 +166,7 @@ export interface SpanDetailResponse extends SpanListItem {
   ended_at: string | null;
   sdk_version: string | null;
   parent_span_id: string | null;
+  timings: SpanTimings | null;
   siblings: SpanListItem[];
 }
 
@@ -399,6 +426,8 @@ export interface ProjectResponse {
   name: string;
   slug: string;
   description: string | null;
+  upstream_base_url: string | null;
+  upstream_provider: string | null;
   created_at: string;
 }
 
@@ -406,10 +435,20 @@ export const projects = {
   list: (token: string) =>
     request<ProjectResponse[]>("/v1/projects", { token }),
 
-  create: (body: { name: string; description?: string }, token: string) =>
+  create: (
+    body: { name: string; description?: string; upstream_base_url?: string },
+    token: string,
+  ) =>
     request<ProjectResponse>("/v1/projects", {
       method: "POST",
       body: JSON.stringify(body),
+      token,
+    }),
+
+  setUpstream: (projectId: string, baseUrl: string, token: string) =>
+    request<ProjectResponse>(`/v1/projects/${projectId}/upstream`, {
+      method: "PATCH",
+      body: JSON.stringify({ base_url: baseUrl }),
       token,
     }),
 };
