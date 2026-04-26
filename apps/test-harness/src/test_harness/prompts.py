@@ -12,7 +12,7 @@ class TestPrompt:
     user: str
     model: str = "gpt-4o-mini"
     temperature: float = 0.7
-    max_tokens: int = 256
+    max_tokens: int = 2048
 
 
 PROMPTS: list[TestPrompt] = [
@@ -35,14 +35,14 @@ PROMPTS: list[TestPrompt] = [
         name="code_gen",
         system="You are a Python expert. Reply with only code, no explanation.",
         user="Write a function that calculates the cost of an LLM call given input_tokens, output_tokens, and price_per_1k_tokens.",
-        max_tokens=512,
+        max_tokens=4096,
     ),
     TestPrompt(
         name="creative",
         system="You are a creative writer.",
         user="Write a haiku about debugging a language model in production.",
         temperature=1.0,
-        max_tokens=64,
+        max_tokens=1024,
     ),
 ]
 

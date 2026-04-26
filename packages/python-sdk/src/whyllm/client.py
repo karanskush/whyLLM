@@ -26,7 +26,7 @@ class whyllmClient:
         ).rstrip("/")
         self._http = httpx.Client(
             base_url=self.base_url,
-            headers={"Authorization": f"Bearer {self.api_key}"},
+            headers={"X-whyllm-Key": self.api_key},
             timeout=timeout,
         )
 

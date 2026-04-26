@@ -89,7 +89,7 @@ def test_run_single_passes_correct_params(client, mock_openai):
     client.post("/api/run/creative")
     call_kwargs = mock_openai.chat.completions.create.call_args
     assert call_kwargs.kwargs["temperature"] == 1.0
-    assert call_kwargs.kwargs["max_tokens"] == 64
+    assert call_kwargs.kwargs["max_tokens"] == 1024
     assert call_kwargs.kwargs["model"] == "gpt-4o-mini"
     messages = call_kwargs.kwargs["messages"]
     assert messages[0]["role"] == "system"
