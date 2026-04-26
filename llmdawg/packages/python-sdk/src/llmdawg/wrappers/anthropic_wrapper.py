@@ -1,4 +1,12 @@
-"""Anthropic client patcher — monkey-patches messages.create in-place."""
+"""Anthropic client patcher — monkey-patches messages.create in-place.
+
+Captures:
+  - Full request kwargs (system prompt, tools, tool_choice, metadata, etc.)
+  - Full response (tool_use blocks, text content, stop_reason)
+  - Cache tokens (cache_read_input_tokens, cache_creation_input_tokens)
+  - Streaming: full system prompt preserved, TTFT, accumulated content
+  - Application context (user_id, session_id, tags, trace_id)
+"""
 
 from __future__ import annotations
 
@@ -8,6 +16,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
+
+from llmdawg.context import get_context
 
 if TYPE_CHECKING:
     from llmdawg.sender import SpanSender
@@ -23,6 +33,84 @@ _STATUS_MAP = {
     None: "success",
 }
 
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _safe_serialize(obj: Any) -> Any:
+    """Best-effort conversion of an object to a JSON-safe dict."""
+    if obj is None:
+        return None
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+    if isinstance(obj, (list, tuple)):
+        return [_safe_serialize(item) for item in obj]
+    if isinstance(obj, dict):
+        return {str(k): _safe_serialize(v) for k, v in obj.items()}
+    if hasattr(obj, "model_dump"):
+        try:
+            return obj.model_dump()
+        except Exception:
+            pass
+    if hasattr(obj, "__dict__"):
+        try:
+            return {k: _safe_serialize(v) for k, v in obj.__dict__.items() if not k.startswith("_")}
+        except Exception:
+            pass
+    return str(obj)
+
+
+def _extract_cache_tokens(usage: Any) -> int:
+    """Extract total cached tokens from Anthropic's usage object.
+
+    Anthropic reports cache_read_input_tokens (tokens read from cache)
+    and cache_creation_input_tokens (tokens written to cache). Both
+    represent cache-priced tokens.
+    """
+    if usage is None:
+        return 0
+    cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+    cache_create = getattr(usage, "cache_creation_input_tokens", 0) or 0
+    return cache_read + cache_create
+
+
+def _extract_content_blocks(content_list: Any) -> dict[str, Any]:
+    """Parse all content blocks (text + tool_use) into structured output."""
+    if not content_list:
+        return {"content": None, "tool_calls": None}
+
+    texts: list[str] = []
+    tool_calls: list[dict[str, Any]] = []
+
+    for block in content_list:
+        block_type = getattr(block, "type", None)
+        if block_type == "text":
+            text = getattr(block, "text", None)
+            if text:
+                texts.append(text)
+        elif block_type == "tool_use":
+            tool_calls.append({
+                "id": getattr(block, "id", None),
+                "name": getattr(block, "name", None),
+                "input": _safe_serialize(getattr(block, "input", None)),
+            })
+
+    return {
+        "content": "".join(texts) if texts else None,
+        "tool_calls": tool_calls if tool_calls else None,
+    }
+
+
+def _build_full_request(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Capture the full request kwargs."""
+    req: dict[str, Any] = {}
+    for key, val in kwargs.items():
+        if key == "stream":
+            continue
+        req[key] = _safe_serialize(val)
+    return req
+
+
+# ── Span builders ───────────────────────────────────────────────────────────
 
 def _build_span(
     request_kwargs: dict[str, Any],
@@ -40,17 +128,16 @@ def _build_span(
         "span_id": str(uuid.uuid4()),
         "provider": "anthropic",
         "model": model,
+        "kind": "llm_call",
         "source": "python-sdk",
         "started_at": started_at.isoformat(),
         "ended_at": ended_at.isoformat(),
         "latency_ms": latency_ms,
-        "request": {
-            "model": model,
-            "messages": request_kwargs.get("messages", []),
-            "max_tokens": request_kwargs.get("max_tokens"),
-            "system": request_kwargs.get("system"),
-        },
+        "request": _build_full_request(request_kwargs),
     }
+
+    # Merge application context
+    span.update(get_context())
 
     if ttft_ms is not None:
         span["ttft_ms"] = ttft_ms
@@ -66,27 +153,24 @@ def _build_span(
         if usage:
             span["input_tokens"] = getattr(usage, "input_tokens", None)
             span["output_tokens"] = getattr(usage, "output_tokens", None)
+            span["cached_tokens"] = _extract_cache_tokens(usage)
 
         stop_reason = getattr(response, "stop_reason", None)
         span["status"] = _STATUS_MAP.get(stop_reason, "success")
 
-        # Extract text content from the content list
-        content_text: str | None = None
+        # Parse all content blocks (text + tool_use)
         content_list = getattr(response, "content", [])
-        if content_list:
-            texts = [
-                getattr(block, "text", None)
-                for block in content_list
-                if getattr(block, "type", None) == "text"
-            ]
-            content_text = "".join(t for t in texts if t)
+        parsed = _extract_content_blocks(content_list)
 
-        span["response"] = {
+        resp: dict[str, Any] = {
             "id": getattr(response, "id", None),
             "model": getattr(response, "model", model),
             "stop_reason": stop_reason,
-            "content": content_text,
+            "content": parsed["content"],
         }
+        if parsed["tool_calls"]:
+            resp["tool_calls"] = parsed["tool_calls"]
+        span["response"] = resp
 
     return span
 
@@ -104,9 +188,12 @@ def _build_stream_span(
     latency_ms = int((ended_at - started_at).total_seconds() * 1000)
 
     content_parts: list[str] = []
+    tool_call_blocks: dict[int, dict[str, Any]] = {}  # block index → tool_call
+    current_block_index: int = 0
     stop_reason: str | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cached_tokens: int = 0
     response_id: str | None = None
 
     for event in events:
@@ -119,13 +206,33 @@ def _build_stream_span(
                 usage = getattr(msg, "usage", None)
                 if usage:
                     input_tokens = getattr(usage, "input_tokens", None)
+                    cached_tokens = _extract_cache_tokens(usage)
+
+        elif event_type == "content_block_start":
+            block = getattr(event, "content_block", None)
+            idx = getattr(event, "index", current_block_index)
+            if block and getattr(block, "type", None) == "tool_use":
+                tool_call_blocks[idx] = {
+                    "id": getattr(block, "id", None),
+                    "name": getattr(block, "name", None),
+                    "input": "",
+                }
+            current_block_index = idx
 
         elif event_type == "content_block_delta":
             delta = getattr(event, "delta", None)
-            if delta and getattr(delta, "type", None) == "text_delta":
-                text = getattr(delta, "text", None)
-                if text:
-                    content_parts.append(text)
+            idx = getattr(event, "index", current_block_index)
+            if delta:
+                delta_type = getattr(delta, "type", None)
+                if delta_type == "text_delta":
+                    text = getattr(delta, "text", None)
+                    if text:
+                        content_parts.append(text)
+                elif delta_type == "input_json_delta":
+                    # Tool use input arrives as incremental JSON
+                    partial = getattr(delta, "partial_json", None)
+                    if partial and idx in tool_call_blocks:
+                        tool_call_blocks[idx]["input"] += partial
 
         elif event_type == "message_delta":
             delta = getattr(event, "delta", None)
@@ -141,16 +248,16 @@ def _build_stream_span(
         "span_id": str(uuid.uuid4()),
         "provider": "anthropic",
         "model": model,
+        "kind": "llm_call",
         "source": "python-sdk",
         "started_at": started_at.isoformat(),
         "ended_at": ended_at.isoformat(),
         "latency_ms": latency_ms,
-        "request": {
-            "model": model,
-            "messages": request_kwargs.get("messages", []),
-            "stream": True,
-        },
+        "request": _build_full_request(request_kwargs),
     }
+
+    # Merge application context
+    span.update(get_context())
 
     if ttft_ms is not None:
         span["ttft_ms"] = ttft_ms
@@ -164,13 +271,37 @@ def _build_stream_span(
     span["status"] = _STATUS_MAP.get(stop_reason, "success")
     span["input_tokens"] = input_tokens
     span["output_tokens"] = output_tokens
-    span["response"] = {
+    span["cached_tokens"] = cached_tokens
+
+    resp: dict[str, Any] = {
         "id": response_id,
         "stop_reason": stop_reason,
         "content": "".join(content_parts),
     }
+    if tool_call_blocks:
+        # Parse accumulated JSON strings for tool inputs
+        tool_calls = []
+        for idx in sorted(tool_call_blocks):
+            tc = tool_call_blocks[idx]
+            input_val = tc["input"]
+            # Try to parse the accumulated JSON
+            import json
+            try:
+                input_val = json.loads(input_val) if input_val else {}
+            except (json.JSONDecodeError, TypeError):
+                pass  # keep as string
+            tool_calls.append({
+                "id": tc["id"],
+                "name": tc["name"],
+                "input": input_val,
+            })
+        resp["tool_calls"] = tool_calls
+
+    span["response"] = resp
     return span
 
+
+# ── Patcher ──────────────────────────────────────────────────────────────────
 
 def wrap_anthropic(client: Any, sender: "SpanSender") -> Any:
     """Monkey-patch client.messages.create in-place. Returns client."""
@@ -211,6 +342,8 @@ def wrap_anthropic(client: Any, sender: "SpanSender") -> Any:
     client.messages.create = patched_create
     return client
 
+
+# ── Stream wrapper ───────────────────────────────────────────────────────────
 
 class _TrackedStream:
     """Wraps an Anthropic Stream, records ttft + accumulates events for tracing."""

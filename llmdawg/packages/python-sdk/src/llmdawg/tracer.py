@@ -1,4 +1,4 @@
-"""Global tracer — init, wrap, and flush."""
+"""Global tracer — init, wrap, flush, and context helpers."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from llmdawg.client import LLMDawgClient
+from llmdawg.context import clear_tags, set_session, set_tags, set_user, trace
 from llmdawg.sender import SpanSender
 
 log = logging.getLogger(__name__)
@@ -46,6 +47,11 @@ def wrap(client: Any) -> Any:
         - openai.OpenAI / openai.AsyncOpenAI
         - anthropic.Anthropic / anthropic.AsyncAnthropic
 
+    Patches:
+        - chat.completions.create (OpenAI)
+        - embeddings.create (OpenAI)
+        - messages.create (Anthropic)
+
     Monkey-patches the client in-place and returns it (drop-in replacement).
 
     Raises:
@@ -80,3 +86,16 @@ def flush(timeout: float = 5.0) -> None:
     """
     if _sender is not None:
         _sender.flush(timeout=timeout)
+
+
+# Re-export context helpers so users can do `llmdawg.trace(...)`, etc.
+__all__ = [
+    "init",
+    "wrap",
+    "flush",
+    "trace",
+    "set_user",
+    "set_session",
+    "set_tags",
+    "clear_tags",
+]
