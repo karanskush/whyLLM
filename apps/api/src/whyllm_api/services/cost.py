@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from decimal import Decimal
 from typing import Optional
 
@@ -34,6 +35,21 @@ _REFRESH_INTERVAL = 300  # 5 minutes
 
 # (provider, model) → (input_per_1k, output_per_1k, cached_per_1k) — all Decimal
 _PriceEntry = tuple[Decimal, Decimal, Decimal]
+
+# Dated snapshots across every major provider follow ISO YYYY-MM-DD suffix:
+# OpenAI `gpt-5-mini-2025-08-07`, Anthropic `claude-3-5-sonnet-20241022` (no
+# dashes handled separately below), Azure deployments echo the OpenAI suffix.
+_DATE_SUFFIX_RE = re.compile(r"-\d{4}-\d{2}-\d{2}$")
+_ANTHROPIC_DATE_SUFFIX_RE = re.compile(r"-\d{8}$")
+
+# Managed-LLM services bill at their underlying model provider's rate card.
+# When a span arrives from a managed provider without an explicit pricing
+# row, fall back to the upstream provider's rate.
+_PROVIDER_FALLBACKS: dict[str, str] = {
+    "azure": "openai",
+    "bedrock": "anthropic",
+    "vertex_ai": "google",
+}
 
 
 class CostEngine:
@@ -65,6 +81,20 @@ class CostEngine:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    def canonicalize(self, provider: str, model: str) -> tuple[str, str]:
+        """Normalize (provider, model) into the pair used for pricing lookup.
+
+        Strips dated snapshot suffixes (e.g., `-2025-08-07`, `-20241022`) so
+        `gpt-5-mini-2025-08-07` and `gpt-5-mini` share a pricing entry. The
+        provider is lowercased but not rewritten — fallback to a parent
+        provider (azure→openai) happens at lookup time in `estimate()` so the
+        caller can still record the true origin on the span.
+        """
+        m = model.lower()
+        m = _DATE_SUFFIX_RE.sub("", m)
+        m = _ANTHROPIC_DATE_SUFFIX_RE.sub("", m)
+        return provider.lower(), m
+
     def estimate(
         self,
         provider: str,
@@ -75,16 +105,23 @@ class CostEngine:
     ) -> Optional[Decimal]:
         """Return the USD cost for one LLM call, or None if the model is unknown.
 
-        All arithmetic uses Decimal to avoid float rounding in billing.
-        Prices are stored per 1K tokens internally.
+        Lookup order:
+          1. (provider, canonical_model)
+          2. (fallback_provider, canonical_model)  — e.g. azure → openai
         """
-        key = (provider.lower(), model.lower())
-        entry = self._prices.get(key)
+        prov, canonical = self.canonicalize(provider, model)
+        entry = self._prices.get((prov, canonical))
         if entry is None:
+            fallback = _PROVIDER_FALLBACKS.get(prov)
+            if fallback:
+                entry = self._prices.get((fallback, canonical))
+
+        if entry is None:
+            key = (prov, canonical)
             if key not in self._unknown_models:
                 log.warning(
-                    "CostEngine: unknown model %s/%s — cost_usd will be NULL",
-                    provider, model,
+                    "CostEngine: unknown model %s/%s (canonical %s/%s) — cost_usd will be NULL",
+                    provider, model, prov, canonical,
                 )
                 self._unknown_models.add(key)
             return None

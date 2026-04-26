@@ -21,6 +21,7 @@ class SpanListItem(BaseModel):
     model: str
     status: str
     kind: str
+    name: Optional[str] = None
     environment: str
     user_id: Optional[str]
     session_id: Optional[str]
@@ -30,6 +31,7 @@ class SpanListItem(BaseModel):
     cost_usd: Optional[Decimal]
     latency_ms: Optional[int]
     ttft_ms: Optional[int]
+    proxy_overhead_ms: Optional[int] = None
     hallucination_score: Optional[Decimal]
     source: str
     started_at: Optional[datetime]
@@ -47,6 +49,7 @@ class SpanDetailResponse(SpanListItem):
     ended_at: Optional[datetime]
     sdk_version: Optional[str]
     parent_span_id: Optional[uuid.UUID]
+    timings: Optional[dict[str, Any]] = None
 
     # Sibling spans (same trace_id), for timeline rendering
     siblings: list["SpanListItem"] = []

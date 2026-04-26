@@ -103,6 +103,16 @@ class Span(Base):
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Time to first token — only meaningful for streaming requests
     ttft_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Time spent inside whyllm before forwarding to upstream
+    # (upstream resolve + body parse + budget gate + header build).
+    # ttft_ms and latency_ms are measured *from forward*, so they are
+    # upstream-only; proxy_overhead_ms captures everything we add on top.
+    proxy_overhead_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Rich extensible timing metadata extracted from upstream — provider
+    # self-reported processing_ms (openai-processing-ms etc.), per-chunk
+    # streaming rhythm (downsampled), derived jitter/stall stats, request id.
+    # See proxy.py:_build_timings for the schema.
+    timings: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB, nullable=True)
 
     # ---- Status --------------------------------------------------------------
     # success | error | timeout | cancelled

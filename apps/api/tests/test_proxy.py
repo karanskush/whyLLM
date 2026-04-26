@@ -1,12 +1,18 @@
-"""Proxy route tests — OpenAI and Anthropic forwarding.
+"""Proxy route tests — unified /proxy/* forwarding.
 
 Uses a mocked httpx client (not respx) to avoid transport patching issues with
 the long-lived proxy client singleton. Each test replaces get_proxy_client()
 with a mock that returns preconfigured httpx.Response objects.
 
+The unified proxy resolves the upstream from the project row, so the fixture
+pre-configures two test projects:
+  - one pointing at api.openai.com (provider=openai)
+  - one pointing at api.anthropic.com (provider=anthropic)
+
 Test classes:
-  TestProxyOpenAI        — non-streaming, headers, 4xx passthrough, budget, auth, enqueue
-  TestProxyAnthropic     — mirrors OpenAI (different auth header + token field names)
+  TestProxyOpenAI        — non-streaming, headers, 4xx passthrough, budget, enqueue
+  TestProxyAnthropic     — token field names, anthropic-version default
+  TestUpstreamResolve    — 424 when no upstream configured, provider inference
   TestBudgetGate         — below budget passes, at/over budget blocked, Redis failure
   TestHeaderStripping    — whyllm and hop-by-hop headers not forwarded
   TestProxyUtils         — unit tests for SSE parsers and enqueue_proxy_span
@@ -53,26 +59,53 @@ async def proxy_db_ids():
     key_prefix = raw_key[:12]
     key_hash = _bcrypt_lib.hashpw(raw_key.encode(), _bcrypt_lib.gensalt()).decode()
 
+    # Second project with Anthropic upstream (same org, same api-key would not
+    # authenticate it, so we create a dedicated key for it too).
+    anth_project_id = uuid.uuid4()
+    anth_key_id = uuid.uuid4()
+    anth_raw_key = "ld-test_" + uuid.uuid4().hex[:24]
+    anth_key_prefix = anth_raw_key[:12]
+    anth_key_hash = _bcrypt_lib.hashpw(anth_raw_key.encode(), _bcrypt_lib.gensalt()).decode()
+
     async with eng.begin() as conn:
         await conn.execute(text(
             "INSERT INTO organizations (id, name, slug) VALUES (:id, :name, :slug)"
         ), {"id": str(org_id), "name": "ProxyTestOrg", "slug": f"proxy-org-{org_id.hex[:8]}"})
         await conn.execute(text(
-            "INSERT INTO projects (id, org_id, name, slug) VALUES (:id, :org_id, :name, :slug)"
+            "INSERT INTO projects (id, org_id, name, slug, "
+            "upstream_base_url, upstream_provider) "
+            "VALUES (:id, :org_id, :name, :slug, :base, :prov)"
         ), {"id": str(project_id), "org_id": str(org_id), "name": "ProxyTestProject",
-            "slug": f"proxy-proj-{project_id.hex[:8]}"})
+            "slug": f"proxy-proj-{project_id.hex[:8]}",
+            "base": "https://api.openai.com", "prov": "openai"})
+        await conn.execute(text(
+            "INSERT INTO projects (id, org_id, name, slug, "
+            "upstream_base_url, upstream_provider) "
+            "VALUES (:id, :org_id, :name, :slug, :base, :prov)"
+        ), {"id": str(anth_project_id), "org_id": str(org_id), "name": "ProxyTestProjectAnth",
+            "slug": f"proxy-proj-anth-{anth_project_id.hex[:8]}",
+            "base": "https://api.anthropic.com", "prov": "anthropic"})
         await conn.execute(text(
             "INSERT INTO api_keys (id, project_id, name, key_hash, key_prefix, is_active) "
             "VALUES (:id, :project_id, :name, :key_hash, :key_prefix, TRUE)"
         ), {"id": str(key_id), "project_id": str(project_id), "name": "ProxyTestKey",
             "key_hash": key_hash, "key_prefix": key_prefix})
+        await conn.execute(text(
+            "INSERT INTO api_keys (id, project_id, name, key_hash, key_prefix, is_active) "
+            "VALUES (:id, :project_id, :name, :key_hash, :key_prefix, TRUE)"
+        ), {"id": str(anth_key_id), "project_id": str(anth_project_id), "name": "ProxyTestKeyAnth",
+            "key_hash": anth_key_hash, "key_prefix": anth_key_prefix})
 
     yield {"org_id": org_id, "project_id": project_id, "key_id": key_id,
-           "raw_key": raw_key, "key_prefix": key_prefix}
+           "raw_key": raw_key, "key_prefix": key_prefix,
+           "anth_project_id": anth_project_id, "anth_key_id": anth_key_id,
+           "anth_raw_key": anth_raw_key, "anth_key_prefix": anth_key_prefix}
 
     async with eng.begin() as conn:
-        await conn.execute(text("DELETE FROM api_keys WHERE id = :id"), {"id": str(key_id)})
-        await conn.execute(text("DELETE FROM projects WHERE id = :id"), {"id": str(project_id)})
+        await conn.execute(text("DELETE FROM api_keys WHERE id IN (:a, :b)"),
+                           {"a": str(key_id), "b": str(anth_key_id)})
+        await conn.execute(text("DELETE FROM projects WHERE id IN (:a, :b)"),
+                           {"a": str(project_id), "b": str(anth_project_id)})
         await conn.execute(text("DELETE FROM organizations WHERE id = :id"), {"id": str(org_id)})
     try:
         await eng.dispose()
@@ -101,11 +134,26 @@ async def proxy_client(proxy_db_ids):
 # ── Mock helpers ──────────────────────��──────────────────────────────���────────
 
 def _mock_redis_no_budget():
-    """Redis mock: no budget spend → budget gate passes immediately."""
+    """Redis mock: no budget spend + upstream cache miss → fall-through to DB."""
     r = AsyncMock()
     r.get = AsyncMock(return_value=None)
+    r.setex = AsyncMock(return_value=True)
+    r.delete = AsyncMock(return_value=1)
     r.lpush = AsyncMock(return_value=1)
     return r
+
+
+def _patch_redis_both(redis_mock):
+    """Context manager that patches both get_redis imports with the same mock.
+
+    The budget gate lives in whyllm_api.proxy.utils and the upstream cache lives
+    in whyllm_api.routes.proxy — each has its own module-local binding.
+    """
+    from contextlib import ExitStack
+    stack = ExitStack()
+    stack.enter_context(patch("whyllm_api.proxy.utils.get_redis", return_value=redis_mock))
+    stack.enter_context(patch("whyllm_api.routes.proxy.get_redis", return_value=redis_mock))
+    return stack
 
 
 def _mock_proxy_client_for(response: httpx.Response) -> MagicMock:
@@ -172,11 +220,12 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(200, json=_openai_chat_response())
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
-                "/openai/v1/chat/completions",
+                "/proxy/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
@@ -190,11 +239,12 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(401, json={"error": {"message": "Invalid API key"}})
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
-                "/openai/v1/chat/completions",
+                "/proxy/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
@@ -204,23 +254,10 @@ class TestProxyOpenAI:
     async def test_missing_whyllm_key_returns_401(self, proxy_client):
         """Missing X-whyllm-Key header returns 401 before forwarding."""
         response = await proxy_client.post(
-            "/openai/v1/chat/completions",
+            "/proxy/v1/chat/completions",
             json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
         )
         assert response.status_code == 401
-
-    async def test_missing_authorization_returns_401(self, proxy_client, proxy_db_ids):
-        """Missing Authorization header returns 401 — user must pass their own OpenAI key."""
-        raw_key = proxy_db_ids["raw_key"]
-
-        response = await proxy_client.post(
-            "/openai/v1/chat/completions",
-            json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
-            headers={"X-whyllm-Key": raw_key},
-        )
-
-        assert response.status_code == 401
-        assert response.json()["detail"]["error"] == "missing_api_key"
 
     async def test_span_enqueued_after_success(self, proxy_client, proxy_db_ids):
         """Successful proxy response enqueues a span with correct fields."""
@@ -237,11 +274,12 @@ class TestProxyOpenAI:
 
         r.lpush = capture_lpush
 
-        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=r):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=r), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=r):
 
             response = await proxy_client.post(
-                "/openai/v1/chat/completions",
+                "/proxy/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
@@ -269,11 +307,12 @@ class TestProxyOpenAI:
         mock_client = MagicMock()
         mock_client.request = capture_request
 
-        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             await proxy_client.post(
-                "/openai/v1/chat/completions",
+                "/proxy/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={
                     "X-whyllm-Key": raw_key,
@@ -306,11 +345,12 @@ class TestProxyOpenAI:
         session.__aexit__ = AsyncMock(return_value=None)
 
         with patch("whyllm_api.proxy.utils.get_redis", return_value=r), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=r), \
              patch("whyllm_api.proxy.utils.get_session_factory",
                    return_value=MagicMock(return_value=session)):
 
             response = await proxy_client.post(
-                "/openai/v1/chat/completions",
+                "/proxy/v1/chat/completions",
                 json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
@@ -324,11 +364,12 @@ class TestProxyOpenAI:
         upstream_resp = httpx.Response(200, json={"object": "list", "data": []})
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("whyllm_api.routes.proxy_openai.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.get(
-                "/openai/v1/models",
+                "/proxy/v1/models",
                 headers={"X-whyllm-Key": raw_key, "Authorization": f"Bearer {_OPENAI_KEY}"},
             )
 
@@ -342,16 +383,17 @@ class TestProxyAnthropic:
     """Anthropic proxy: auth header, token fields, forwarding."""
 
     async def test_non_streaming_forward(self, proxy_client, proxy_db_ids):
-        """POST /anthropic/v1/messages returns Anthropic response."""
-        raw_key = proxy_db_ids["raw_key"]
+        """POST /proxy/v1/messages routes to Anthropic upstream."""
+        raw_key = proxy_db_ids["anth_raw_key"]
         upstream_resp = httpx.Response(200, json=_anthropic_chat_response())
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
-                "/anthropic/v1/messages",
+                "/proxy/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
@@ -362,7 +404,7 @@ class TestProxyAnthropic:
 
     async def test_anthropic_auth_header_passthrough(self, proxy_client, proxy_db_ids):
         """User's x-api-key passes through unchanged; anthropic-version is set."""
-        raw_key = proxy_db_ids["raw_key"]
+        raw_key = proxy_db_ids["anth_raw_key"]
         captured_headers: dict[str, str] = {}
 
         async def capture_request(method, url, **kwargs):
@@ -372,11 +414,12 @@ class TestProxyAnthropic:
         mock_client = MagicMock()
         mock_client.request = capture_request
 
-        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             await proxy_client.post(
-                "/anthropic/v1/messages",
+                "/proxy/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
@@ -392,17 +435,18 @@ class TestProxyAnthropic:
 
     async def test_upstream_4xx_passed_through(self, proxy_client, proxy_db_ids):
         """Anthropic 4xx responses are passed through unchanged."""
-        raw_key = proxy_db_ids["raw_key"]
+        raw_key = proxy_db_ids["anth_raw_key"]
         upstream_resp = httpx.Response(
             400, json={"type": "error", "error": {"type": "invalid_request_error"}}
         )
         mock_client = _mock_proxy_client_for(upstream_resp)
 
-        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
 
             response = await proxy_client.post(
-                "/anthropic/v1/messages",
+                "/proxy/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
@@ -410,23 +454,9 @@ class TestProxyAnthropic:
 
         assert response.status_code == 400
 
-    async def test_missing_xapikey_returns_401(self, proxy_client, proxy_db_ids):
-        """401 when x-api-key header is missing — user must pass their own Anthropic key."""
-        raw_key = proxy_db_ids["raw_key"]
-
-        response = await proxy_client.post(
-            "/anthropic/v1/messages",
-            json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
-                  "messages": [{"role": "user", "content": "hi"}]},
-            headers={"X-whyllm-Key": raw_key},
-        )
-
-        assert response.status_code == 401
-        assert response.json()["detail"]["error"] == "missing_api_key"
-
     async def test_span_uses_input_output_tokens(self, proxy_client, proxy_db_ids):
         """Anthropic span uses input_tokens/output_tokens (not prompt/completion)."""
-        raw_key = proxy_db_ids["raw_key"]
+        raw_key = proxy_db_ids["anth_raw_key"]
         upstream_resp = httpx.Response(200, json=_anthropic_chat_response())
         mock_client = _mock_proxy_client_for(upstream_resp)
 
@@ -439,11 +469,12 @@ class TestProxyAnthropic:
 
         r.lpush = capture_lpush
 
-        with patch("whyllm_api.routes.proxy_anthropic.get_proxy_client", return_value=mock_client), \
-             patch("whyllm_api.proxy.utils.get_redis", return_value=r):
+        with patch("whyllm_api.routes.proxy.get_proxy_client", return_value=mock_client), \
+             patch("whyllm_api.proxy.utils.get_redis", return_value=r), \
+             patch("whyllm_api.routes.proxy.get_redis", return_value=r):
 
             await proxy_client.post(
-                "/anthropic/v1/messages",
+                "/proxy/v1/messages",
                 json={"model": "claude-3-5-sonnet-20241022", "max_tokens": 100,
                       "messages": [{"role": "user", "content": "hi"}]},
                 headers={"X-whyllm-Key": raw_key, "x-api-key": _ANTHROPIC_KEY},
@@ -457,6 +488,76 @@ class TestProxyAnthropic:
         assert span["input_tokens"] == 10
         assert span["output_tokens"] == 5
         assert span["source"] == "proxy"
+
+
+# ── TestUpstreamResolve ───────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+class TestUpstreamResolve:
+    """Unified proxy: upstream resolution + provider inference."""
+
+    async def test_missing_upstream_returns_424(self, proxy_client):
+        """Project with no upstream configured → 424 Failed Dependency."""
+        from sqlalchemy import text as _t
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy.pool import NullPool
+
+        eng = create_async_engine(_TEST_DB_URL, poolclass=NullPool)
+        org_id = uuid.uuid4()
+        project_id = uuid.uuid4()
+        key_id = uuid.uuid4()
+        raw_key = "ld-test_" + uuid.uuid4().hex[:24]
+        key_prefix = raw_key[:12]
+        key_hash = _bcrypt_lib.hashpw(raw_key.encode(), _bcrypt_lib.gensalt()).decode()
+
+        try:
+            async with eng.begin() as conn:
+                await conn.execute(_t(
+                    "INSERT INTO organizations (id, name, slug) VALUES (:id, :name, :slug)"
+                ), {"id": str(org_id), "name": "NoUpstreamOrg", "slug": f"no-up-{org_id.hex[:8]}"})
+                # Deliberately omit upstream columns — both stay NULL
+                await conn.execute(_t(
+                    "INSERT INTO projects (id, org_id, name, slug) "
+                    "VALUES (:id, :org_id, :name, :slug)"
+                ), {"id": str(project_id), "org_id": str(org_id), "name": "NoUp",
+                    "slug": f"no-up-p-{project_id.hex[:8]}"})
+                await conn.execute(_t(
+                    "INSERT INTO api_keys (id, project_id, name, key_hash, key_prefix, is_active) "
+                    "VALUES (:id, :project_id, :name, :key_hash, :key_prefix, TRUE)"
+                ), {"id": str(key_id), "project_id": str(project_id), "name": "K",
+                    "key_hash": key_hash, "key_prefix": key_prefix})
+
+            with patch("whyllm_api.proxy.utils.get_redis", return_value=_mock_redis_no_budget()), \
+                 patch("whyllm_api.routes.proxy.get_redis", return_value=_mock_redis_no_budget()):
+                response = await proxy_client.post(
+                    "/proxy/v1/chat/completions",
+                    json={"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
+                    headers={"X-whyllm-Key": raw_key, "Authorization": "Bearer sk-test"},
+                )
+            assert response.status_code == 424
+            assert response.json()["detail"]["error"] == "upstream_not_configured"
+        finally:
+            async with eng.begin() as conn:
+                await conn.execute(_t("DELETE FROM api_keys WHERE id = :id"), {"id": str(key_id)})
+                await conn.execute(_t("DELETE FROM projects WHERE id = :id"), {"id": str(project_id)})
+                await conn.execute(_t("DELETE FROM organizations WHERE id = :id"), {"id": str(org_id)})
+            await eng.dispose()
+
+    def test_infer_provider_azure(self):
+        from whyllm_api.routes.proxy import infer_provider
+        assert infer_provider("https://aoai-kasi-southeastasia.openai.azure.com/") == "azure"
+
+    def test_infer_provider_openai(self):
+        from whyllm_api.routes.proxy import infer_provider
+        assert infer_provider("https://api.openai.com/v1") == "openai"
+
+    def test_infer_provider_anthropic(self):
+        from whyllm_api.routes.proxy import infer_provider
+        assert infer_provider("https://api.anthropic.com") == "anthropic"
+
+    def test_infer_provider_custom(self):
+        from whyllm_api.routes.proxy import infer_provider
+        assert infer_provider("https://my-self-hosted-llm.example.com/v1") == "custom"
 
 
 # ── TestBudgetGate ──────────────────────────────────────────────────────────���─

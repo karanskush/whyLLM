@@ -90,6 +90,10 @@ async def check_budget(project_id: uuid.UUID) -> None:
             row = result.fetchone()
 
         if row and spent >= float(row[0]):
+            log.info(
+                "budget: blocked [proj=%s] spent=$%.2f limit=$%.2f",
+                str(project_id)[:8], spent, float(row[0]),
+            )
             raise HTTPException(
                 status_code=429,
                 detail={
@@ -125,6 +129,12 @@ async def enqueue_proxy_span(span_data: dict[str, Any], ctx: KeyContext) -> None
             "ingested_at": datetime.now(tz=timezone.utc).isoformat(),
         })
         await get_redis().lpush("ingest_queue", payload)
+        log.debug(
+            "span: queued [span=%s] provider=%s status=%s",
+            str(span_data.get("span_id"))[:8],
+            span_data.get("provider"),
+            span_data.get("status"),
+        )
     except Exception as exc:
         log.warning("Proxy span enqueue failed: %s", exc)
 

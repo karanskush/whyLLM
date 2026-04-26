@@ -39,6 +39,10 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Upstream LLM endpoint — one per project. provider is inferred from base_url
+    # at save time; both are NULL until the customer completes onboarding.
+    upstream_base_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    upstream_provider: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         server_default=text("NOW()"),

@@ -237,6 +237,18 @@ class IngestWorker:
         model: str = data["model"]
         status: str = data["status"]
 
+        log.info(
+            "worker: received [span=%s][proj=%s] provider=%s model=%s status=%s source=%s",
+            span_id_str[:8], project_id_str[:8],
+            provider, model, status, data.get("source"),
+        )
+
+        # Canonicalize model for storage so dashboards group across dated
+        # snapshots (raw provider-returned id stays preserved in data["response"]).
+        if self._cost_engine is not None:
+            _, model = self._cost_engine.canonicalize(provider, model)
+            data["model"] = model
+
         try:
             span_id = uuid.UUID(span_id_str)
             project_id = uuid.UUID(project_id_str)
@@ -289,6 +301,13 @@ class IngestWorker:
             cost_usd=cost_usd,
             hall_score=hall_score,
             hall_flags=hall_flags,
+        )
+        log.info(
+            "worker: stored [span=%s] cost=$%s tokens=%s/%s latency=%sms hall=%s",
+            span_id_str[:8],
+            f"{cost_usd:.5f}" if cost_usd is not None else "—",
+            input_tokens, output_tokens, data.get("latency_ms"),
+            f"{hall_score:.2f}" if hall_score is not None else "—",
         )
 
         # ── Step 5: Trace aggregation ────────────────────────────────────────
@@ -360,6 +379,8 @@ class IngestWorker:
             "cost_usd": cost_usd,
             "latency_ms": data.get("latency_ms"),
             "ttft_ms": data.get("ttft_ms"),
+            "proxy_overhead_ms": data.get("proxy_overhead_ms"),
+            "timings": data.get("timings"),
             "error_type": data.get("error_type"),
             "error_message": data.get("error_message"),
             "request": data.get("request"),

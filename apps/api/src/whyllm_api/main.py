@@ -9,6 +9,8 @@ All routes are registered via sub-routers to keep this file lean.
 
 from __future__ import annotations
 
+import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -16,6 +18,35 @@ import orjson
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+
+
+# ── Application logging ───────────────────────────────────────────────────────
+# uvicorn configures only its own loggers (uvicorn, uvicorn.access, uvicorn.error)
+# — application loggers inherit a root that has no handler, so log.info() calls
+# from our code would vanish. Wire up whyllm_api.* with a stdout handler so
+# `docker compose logs api` surfaces every hop of every request.
+#
+# Set WHYLLM_LOG_LEVEL=DEBUG to see DEBUG lines (span queued, cache hits).
+# Set WHYLLM_LOG_SQL=1 to keep SQLAlchemy's per-statement echo on.
+
+_APP_LOG_FORMAT = "%(asctime)s %(levelname)-5s %(name)s :: %(message)s"
+_level_name = os.environ.get("WHYLLM_LOG_LEVEL", "INFO").upper()
+_app_level = getattr(logging, _level_name, logging.INFO)
+
+_root_app_logger = logging.getLogger("whyllm_api")
+if not _root_app_logger.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter(_APP_LOG_FORMAT))
+    _root_app_logger.addHandler(_h)
+_root_app_logger.setLevel(_app_level)
+_root_app_logger.propagate = False
+
+# Quiet SQLAlchemy's per-statement INFO chatter by default — it drowns out
+# the proxy/auth/upstream/span lines the operator actually wants to see.
+# Flip WHYLLM_LOG_SQL=1 to restore it for SQL debugging.
+if os.environ.get("WHYLLM_LOG_SQL", "").lower() not in ("1", "true", "yes"):
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
 from whyllm_api.config import get_settings
 from whyllm_api.database import close_engine, get_engine
@@ -27,8 +58,7 @@ from whyllm_api.routes.auth import router as auth_router
 from whyllm_api.routes.metrics import router as metrics_router
 from whyllm_api.routes.spans import router as spans_router
 from whyllm_api.routes.cost import router as cost_router
-from whyllm_api.routes.proxy_anthropic import router as proxy_anthropic_router
-from whyllm_api.routes.proxy_openai import router as proxy_openai_router
+from whyllm_api.routes.proxy import router as proxy_router
 from whyllm_api.routes.admin import router as admin_router
 from whyllm_api.routes.projects import router as projects_router
 from whyllm_api.routes.settings import router as settings_router
@@ -81,6 +111,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     print(f"[startup] whyllm API v{settings.api_version} — {settings.environment}")
 
+    # Re-assert SQL log level after the engine is created (echo=True would
+    # otherwise have reset sqlalchemy.engine to INFO during lazy init).
+    if os.environ.get("WHYLLM_LOG_SQL", "").lower() not in ("1", "true", "yes"):
+        logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+        logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
+
     yield  # ← application runs here
 
     # ---- Shutdown -------------------------------------------------------------
@@ -124,8 +160,7 @@ def create_app() -> FastAPI:
     app.include_router(ingest_router)
     app.include_router(auth_router)
     app.include_router(metrics_router)
-    app.include_router(proxy_openai_router)
-    app.include_router(proxy_anthropic_router)
+    app.include_router(proxy_router)
     app.include_router(spans_router)
     app.include_router(cost_router)
     app.include_router(admin_router)

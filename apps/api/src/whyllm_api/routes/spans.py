@@ -165,7 +165,7 @@ async def list_spans(
             id, created_at, trace_id, project_id, provider, model, status,
             kind, environment, user_id, session_id,
             input_tokens, output_tokens, total_tokens,
-            cost_usd, latency_ms, ttft_ms, hallucination_score,
+            cost_usd, latency_ms, ttft_ms, proxy_overhead_ms, hallucination_score,
             source, started_at
         FROM spans
         WHERE {where_clause}
@@ -202,9 +202,10 @@ async def list_spans(
             cost_usd=row[14],
             latency_ms=row[15],
             ttft_ms=row[16],
-            hallucination_score=row[17],
-            source=row[18],
-            started_at=row[19],
+            proxy_overhead_ms=row[17],
+            hallucination_score=row[18],
+            source=row[19],
+            started_at=row[20],
         )
         for row in rows
     ]
@@ -246,11 +247,11 @@ async def get_span(
                     id, created_at, trace_id, project_id, provider, model, status,
                     kind, environment, user_id, session_id, tags,
                     input_tokens, output_tokens, total_tokens,
-                    cost_usd, latency_ms, ttft_ms,
+                    cost_usd, latency_ms, ttft_ms, proxy_overhead_ms,
                     hallucination_score, hallucination_flags,
                     source, started_at, ended_at, sdk_version,
                     parent_span_id, error_type, error_message,
-                    request, response
+                    request, response, timings
                 FROM spans
                 WHERE id = :span_id
                 LIMIT 1
@@ -278,7 +279,7 @@ async def get_span(
                         id, created_at, trace_id, project_id, provider, model, status,
                         kind, environment, user_id, session_id,
                         input_tokens, output_tokens, total_tokens,
-                        cost_usd, latency_ms, ttft_ms, hallucination_score,
+                        cost_usd, latency_ms, ttft_ms, proxy_overhead_ms, hallucination_score,
                         source, started_at
                     FROM spans
                     WHERE trace_id = :trace_id
@@ -300,7 +301,8 @@ async def get_span(
                     user_id=srow[9], session_id=srow[10],
                     input_tokens=srow[11], output_tokens=srow[12], total_tokens=srow[13],
                     cost_usd=srow[14], latency_ms=srow[15], ttft_ms=srow[16],
-                    hallucination_score=srow[17], source=srow[18], started_at=srow[19],
+                    proxy_overhead_ms=srow[17],
+                    hallucination_score=srow[18], source=srow[19], started_at=srow[20],
                 ))
 
     return SpanDetailResponse(
@@ -322,17 +324,19 @@ async def get_span(
         cost_usd=row[15],
         latency_ms=row[16],
         ttft_ms=row[17],
-        hallucination_score=row[18],
-        hallucination_flags=row[19],
-        source=row[20],
-        started_at=row[21],
-        ended_at=row[22],
-        sdk_version=row[23],
-        parent_span_id=row[24],
-        error_type=row[25],
-        error_message=row[26],
-        request=row[27],
-        response=row[28],
+        proxy_overhead_ms=row[18],
+        hallucination_score=row[19],
+        hallucination_flags=row[20],
+        source=row[21],
+        started_at=row[22],
+        ended_at=row[23],
+        sdk_version=row[24],
+        parent_span_id=row[25],
+        error_type=row[26],
+        error_message=row[27],
+        request=row[28],
+        response=row[29],
+        timings=row[30],
         siblings=siblings,
     )
 

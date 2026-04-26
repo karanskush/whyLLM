@@ -43,17 +43,30 @@ _KEY_CACHE_TTL = 300  # 5 minutes
 class KeyContext:
     """Resolved identity from a validated API key — injected via Depends."""
 
-    __slots__ = ("project_id", "org_id", "key_id")
+    __slots__ = ("project_id", "org_id", "key_id", "environment")
 
     def __init__(
         self,
         project_id: uuid.UUID,
         org_id: uuid.UUID,
         key_id: uuid.UUID,
+        environment: str = "production",
     ) -> None:
         self.project_id = project_id
         self.org_id = org_id
         self.key_id = key_id
+        self.environment = environment
+
+
+def environment_from_raw_key(raw: str) -> str:
+    """Derive environment from key prefix. Matches settings._env_from_prefix."""
+    if "-prod_" in raw:
+        return "production"
+    if "-stg_" in raw:
+        return "staging"
+    if "-dev_" in raw:
+        return "development"
+    return "production"
 
 
 def _cache_key(raw_key: str) -> str:
@@ -62,16 +75,26 @@ def _cache_key(raw_key: str) -> str:
 
 
 async def _lookup_in_redis(raw_key: str) -> KeyContext | None:
-    """Return a KeyContext if the key is found in the Redis cache."""
+    """Return a KeyContext if the key is found in the Redis cache.
+
+    Older cache payloads may predate the `environment` field — fall back to
+    deriving it from the raw key prefix in that case.
+    """
     try:
         cached = await get_redis().get(_cache_key(raw_key))
         if cached:
             data = json.loads(cached)
-            return KeyContext(
+            ctx = KeyContext(
                 project_id=uuid.UUID(data["project_id"]),
                 org_id=uuid.UUID(data["org_id"]),
                 key_id=uuid.UUID(data["key_id"]),
+                environment=data.get("environment") or environment_from_raw_key(raw_key),
             )
+            log.debug(
+                "auth: cache hit [proj=%s][env=%s]",
+                str(ctx.project_id)[:8], ctx.environment,
+            )
+            return ctx
     except Exception as exc:
         # Redis failure is non-fatal here — fall through to DB lookup
         log.warning("Redis cache lookup failed: %s", exc)
@@ -85,6 +108,7 @@ async def _cache_in_redis(raw_key: str, ctx: KeyContext) -> None:
             "project_id": str(ctx.project_id),
             "org_id": str(ctx.org_id),
             "key_id": str(ctx.key_id),
+            "environment": ctx.environment,
         })
         await get_redis().setex(_cache_key(raw_key), _KEY_CACHE_TTL, payload)
     except Exception as exc:
@@ -137,11 +161,17 @@ async def _lookup_in_db(raw_key: str) -> KeyContext | None:
             continue
 
         if verified:
-            return KeyContext(
+            ctx = KeyContext(
                 project_id=api_key_obj.project_id,
                 org_id=org_id,
                 key_id=api_key_obj.id,
+                environment=environment_from_raw_key(raw_key),
             )
+            log.info(
+                "auth: db resolved [proj=%s][env=%s] prefix=%s",
+                str(ctx.project_id)[:8], ctx.environment, raw_key[:12],
+            )
+            return ctx
 
     return None
 
@@ -179,6 +209,7 @@ async def verify_api_key(
     if ctx is None:
         ctx = await _lookup_in_db(x_whyllm_key)
         if ctx is None:
+            log.info("auth: invalid key prefix=%s", x_whyllm_key[:12])
             raise HTTPException(
                 status_code=401,
                 detail={"error": "invalid_api_key", "message": "API key is invalid or inactive"},
