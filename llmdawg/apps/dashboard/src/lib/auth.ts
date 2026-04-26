@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Demo admin account — no backend required
         if (
-          credentials.email === "admin" &&
+          credentials.email === "admin@whyllm.xyz" &&
           credentials.password === "admin"
         ) {
           return {
