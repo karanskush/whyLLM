@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Zap } from "lucide-react";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
+  email: z.string().min(1, "Email or username required"),
   password: z.string().min(1, "Password required"),
 });
 
@@ -57,7 +57,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5">Email</label>
               <input
-                type="email"
+                type="text"
                 {...register("email")}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
                 placeholder="you@example.com"

@@ -19,6 +19,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Demo admin account — no backend required
+        if (
+          credentials.email === "admin" &&
+          credentials.password === "admin"
+        ) {
+          return {
+            id: "admin-001",
+            email: "admin@whyllm.dev",
+            name: "Admin",
+            accessToken: "demo-token",
+            orgId: "org-demo",
+            orgName: "Demo Org",
+            isAdmin: true,
+          };
+        }
+
         try {
           const res = await apiAuth.login({
             email: credentials.email as string,
