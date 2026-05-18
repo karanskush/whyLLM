@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   GitBranch,
   DollarSign,
+  Lightbulb,
   Settings,
   LogOut,
   Zap,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/traces", label: "Traces", icon: GitBranch },
   { href: "/dashboard/cost", label: "Cost", icon: DollarSign },
+  { href: "/dashboard/insights", label: "Insights", icon: Lightbulb },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

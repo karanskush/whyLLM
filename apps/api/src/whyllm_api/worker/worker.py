@@ -101,6 +101,8 @@ class IngestWorker:
         # Injected during start() — kept as instance attrs for testability
         self._redis: Any = None
         self._cost_engine: Any = None
+        # Tier-2 prediction sweep — runs in-process alongside ingest.
+        self._prediction_scheduler: Any = None
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -127,6 +129,18 @@ class IngestWorker:
         self._consumer_task = asyncio.create_task(
             self._consumer_loop(), name="ingest-worker-consumer"
         )
+
+        # Start the Tier-2 prediction engine sweep. It shares this process
+        # but runs on its own slow interval, so it never competes with the
+        # ingest hot path. Failure to start is non-fatal — ingest goes on.
+        try:
+            from whyllm_api.services.predictions.engine import PredictionScheduler
+
+            self._prediction_scheduler = PredictionScheduler()
+            await self._prediction_scheduler.start()
+        except Exception as exc:
+            log.warning("PredictionScheduler failed to start (non-critical): %s", exc)
+
         log.info(
             "IngestWorker started — concurrency=%d retries=%d",
             self._concurrency, self._max_retries,
@@ -135,6 +149,13 @@ class IngestWorker:
     async def stop(self) -> None:
         """Signal shutdown and wait for all in-flight tasks to complete."""
         self.shutdown_event.set()
+
+        # Stop the prediction sweep first — it's the lowest priority.
+        if self._prediction_scheduler is not None:
+            try:
+                await self._prediction_scheduler.stop()
+            except Exception as exc:
+                log.warning("PredictionScheduler stop failed: %s", exc)
 
         if self._consumer_task and not self._consumer_task.done():
             self._consumer_task.cancel()

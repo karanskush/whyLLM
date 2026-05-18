@@ -775,6 +775,33 @@ def _extract_provider_timings(
         except (TypeError, ValueError):
             pass
 
+    # Rate-limit *ceilings* and reset windows — paired with the "remaining"
+    # values above, these let the prediction engine forecast exhaustion
+    # (services/predictions/rate_limit.py) instead of just reporting it.
+    rl_limit_tokens = h.get("x-ratelimit-limit-tokens") or h.get(
+        "anthropic-ratelimit-tokens-limit"
+    )
+    if rl_limit_tokens:
+        try:
+            out["rate_limit_limit_tokens"] = int(float(rl_limit_tokens))
+        except (TypeError, ValueError):
+            pass
+    rl_limit_requests = h.get("x-ratelimit-limit-requests") or h.get(
+        "anthropic-ratelimit-requests-limit"
+    )
+    if rl_limit_requests:
+        try:
+            out["rate_limit_limit_requests"] = int(float(rl_limit_requests))
+        except (TypeError, ValueError):
+            pass
+    # Reset windows are provider-formatted durations (e.g. "6m0s", "1.5s") —
+    # stored verbatim, parsed downstream only if needed.
+    rl_reset = h.get("x-ratelimit-reset-tokens") or h.get(
+        "anthropic-ratelimit-tokens-reset"
+    )
+    if rl_reset:
+        out["rate_limit_reset_tokens"] = str(rl_reset)[:32]
+
     if provider:
         out["provider"] = provider
     return out

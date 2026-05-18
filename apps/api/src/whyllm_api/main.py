@@ -58,6 +58,7 @@ from whyllm_api.routes.auth import router as auth_router
 from whyllm_api.routes.metrics import router as metrics_router
 from whyllm_api.routes.spans import router as spans_router
 from whyllm_api.routes.cost import router as cost_router
+from whyllm_api.routes.insights import router as insights_router
 from whyllm_api.routes.proxy import router as proxy_router
 from whyllm_api.routes.admin import router as admin_router
 from whyllm_api.routes.projects import router as projects_router
@@ -163,6 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(proxy_router)
     app.include_router(spans_router)
     app.include_router(cost_router)
+    app.include_router(insights_router)
     app.include_router(admin_router)
     app.include_router(projects_router)
     app.include_router(settings_router)

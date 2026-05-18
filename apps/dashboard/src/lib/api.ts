@@ -453,6 +453,55 @@ export const projects = {
     }),
 };
 
+// ── Insights ──────────────────────────────────────────────────────────────────
+
+export type InsightType = "cost_forecast" | "rate_limit_eta" | "model_drift";
+export type InsightSeverity = "info" | "warning" | "critical";
+export type InsightStatus = "open" | "acknowledged" | "resolved";
+
+export interface Insight {
+  id: string;
+  type: InsightType;
+  severity: InsightSeverity;
+  status: InsightStatus;
+  title: string;
+  summary: string;
+  detail: Record<string, unknown>;
+  confidence: number | null;
+  predicted_for: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InsightListResponse {
+  insights: Insight[];
+  count: number;
+}
+
+export const insights = {
+  list: (
+    projectId: string,
+    opts: { status?: InsightStatus | "all"; type?: InsightType },
+    token: string,
+  ) => {
+    const params = new URLSearchParams();
+    if (opts.status) params.set("status", opts.status);
+    if (opts.type) params.set("type", opts.type);
+    const qs = params.toString();
+    return request<InsightListResponse>(
+      `/v1/projects/${projectId}/insights${qs ? `?${qs}` : ""}`,
+      { token },
+    );
+  },
+
+  updateStatus: (insightId: string, status: InsightStatus, token: string) =>
+    request<{ id: string; status: InsightStatus }>(`/v1/insights/${insightId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+      token,
+    }),
+};
+
 // ── SSE live feed ─────────────────────────────────────────────────────────────
 
 export function createLiveFeed(projectId: string, token: string) {

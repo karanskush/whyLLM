@@ -62,7 +62,7 @@ async def test_all_tables_exist(engine: AsyncEngine) -> None:
     expected = {
         "organizations", "users", "org_members", "projects",
         "api_keys", "model_pricing", "traces", "spans",
-        "cost_budgets", "alerts", "alert_events",
+        "cost_budgets", "alerts", "alert_events", "insights",
     }
     rows = await _fetchall(engine, """
         SELECT tablename FROM pg_tables
@@ -212,8 +212,23 @@ async def test_model_pricing_all_providers(engine: AsyncEngine) -> None:
 
 @pytest.mark.asyncio
 async def test_alembic_at_head(engine: AsyncEngine) -> None:
+    """The DB revision must match the latest migration on disk.
+
+    Resolves the head dynamically from the migration scripts so this test
+    never goes stale when a new migration is added.
+    """
+    from pathlib import Path
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    api_root = Path(__file__).resolve().parents[1]
+    cfg = Config(str(api_root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(api_root / "migrations"))
+    head = ScriptDirectory.from_config(cfg).get_current_head()
+
     version = await _scalar(engine, "SELECT version_num FROM alembic_version")
-    assert version == "8e7d6c5b4a3f", f"Not at head: {version!r}"
+    assert version == head, f"DB at {version!r}, migrations head is {head!r}"
 
 
 @pytest.mark.asyncio

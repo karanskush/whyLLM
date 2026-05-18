@@ -4,6 +4,7 @@ from whyllm_api.models.alert import Alert
 from whyllm_api.models.alert_event import AlertEvent
 from whyllm_api.models.api_key import ApiKey
 from whyllm_api.models.cost_budget import CostBudget
+from whyllm_api.models.insight import Insight
 from whyllm_api.models.model_pricing import ModelPricing
 from whyllm_api.models.org_member import OrgMember
 from whyllm_api.models.organization import Organization
@@ -22,6 +23,7 @@ __all__ = [
     "Trace",
     "Span",
     "CostBudget",
+    "Insight",
     "Alert",
     "AlertEvent",
 ]
