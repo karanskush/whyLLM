@@ -178,7 +178,7 @@ const FEATURES: Feature[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 const PLAN_COLUMNS: { name: string; price: string; note: string; highlight?: boolean }[] = [
   { name: "Basic", price: "$0", note: "forever" },
-  { name: "Pro", price: "$0.10", note: "per 10k spans", highlight: true },
+  { name: "Pro", price: "$10", note: "/ month", highlight: true },
   { name: "Enterprise", price: "Custom", note: "" },
 ];
 

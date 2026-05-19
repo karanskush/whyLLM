@@ -1121,12 +1121,12 @@ export default function LandingPage() {
               Pricing
             </p>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              Simple. Usage-based.
+              Simple. Flat-rate.
               <br />
               No per-seat nonsense.
             </h2>
             <p className="text-zinc-400 text-lg">
-              Pay for what you trace. A 10-person team shouldn&apos;t cost 10×.
+              One flat price for the whole team. A 10-person team shouldn&apos;t cost 10×.
             </p>
           </div>
 
@@ -1149,8 +1149,8 @@ export default function LandingPage() {
               },
               {
                 name: "Pro",
-                price: "$0.10",
-                period: "per 10k spans",
+                price: "$10",
+                period: "/ month",
                 description: "For teams shipping LLMs in production",
                 features: [
                   "Unlimited spans",
