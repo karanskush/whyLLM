@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 
+import { MarketingNav } from "@/components/marketing/nav";
+import { MarketingFooter } from "@/components/marketing/footer";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,65 +55,6 @@ function CyclingPhrase() {
     >
       {CYCLING_PHRASES[idx]}
     </span>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Nav
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Nav() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 24);
-    window.addEventListener("scroll", handler);
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
-
-  return (
-    <nav
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled && "bg-[#09090B]/90 backdrop-blur-xl border-b border-white/[0.06]"
-      )}
-    >
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-lime-500 flex items-center justify-center shadow-[0_0_12px_rgba(132,204,22,0.5)]">
-            <span className="text-black font-black text-xs tracking-tighter">W</span>
-          </div>
-          <span className="font-bold text-white text-base">whyllm</span>
-        </div>
-
-        <div className="hidden md:flex items-center gap-8">
-          {["Features", "Pricing", "Docs"].map((link) => (
-            <a
-              key={link}
-              href={`#${link.toLowerCase()}`}
-              className="text-sm text-zinc-400 hover:text-white transition-colors duration-150"
-            >
-              {link}
-            </a>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm text-zinc-400 hover:text-white transition-colors hidden md:block"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm bg-lime-500 text-black font-semibold px-4 py-2 rounded-lg hover:bg-lime-400 transition-colors duration-150"
-          >
-            Start free →
-          </Link>
-        </div>
-      </div>
-    </nav>
   );
 }
 
@@ -653,7 +597,7 @@ export default function LandingPage() {
       className="min-h-screen overflow-x-hidden"
       style={{ background: "#09090B", color: "#FAFAFA" }}
     >
-      <Nav />
+      <MarketingNav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section
@@ -1189,7 +1133,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                name: "Hobby",
+                name: "Basic",
                 price: "$0",
                 period: "forever",
                 description: "For solo devs and side projects",
@@ -1348,30 +1292,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.06] py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-md bg-lime-500 flex items-center justify-center">
-              <span className="text-black font-black text-[10px]">W</span>
-            </div>
-            <span className="font-bold text-zinc-400 text-sm">whyllm</span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            {["Features", "Pricing", "Docs", "GitHub", "Privacy", "Terms"].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-
-          <p className="text-xs text-zinc-700">© 2026 whyllm. Built for engineers.</p>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
