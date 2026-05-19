@@ -9,7 +9,7 @@ import { CaptureExplorer } from "@/components/marketing/capture-explorer";
 export const metadata: Metadata = {
   title: "What we show — whyllm",
   description:
-    "Every detail whyllm captures from each LLM call — 49 indexed fields across 9 categories, aligned with the OpenTelemetry GenAI semantic conventions — plus the feature tour and a plan-by-plan comparison.",
+    "Every detail whyllm captures from each LLM call — 49 indexed fields across 9 categories, aligned with the OpenTelemetry GenAI semantic conventions — plus the feature tour, the premium AI copilots it unlocks, and a plan-by-plan comparison.",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -174,6 +174,105 @@ const FEATURES: Feature[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AI copilots — premium, AI-native features built on the complete record
+// ─────────────────────────────────────────────────────────────────────────────
+type Copilot = {
+  name: string;
+  body: string;
+  tier: "Pro" | "Enterprise";
+  status: "Beta" | "Roadmap";
+  runsOn: string;
+  icon: ReactNode;
+};
+
+const AI_COPILOTS: Copilot[] = [
+  {
+    name: "Ask your traces",
+    body: "Search your whole history in plain English. “Which prompts regressed after the gpt-4o snapshot bump?” returns an answer grounded in real spans — every one cited and clickable.",
+    tier: "Pro",
+    status: "Roadmap",
+    runsOn: "request.messages · response · tags",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <circle cx="7.5" cy="7.5" r="4.8" />
+        <line x1="11" y1="11" x2="15.5" y2="15.5" />
+      </svg>
+    ),
+  },
+  {
+    name: "Root-cause copilot",
+    body: "When drift or a cost spike fires, an agent walks the surrounding spans and writes the post-mortem: what changed, which calls were hit, and the likely fix.",
+    tier: "Pro",
+    status: "Roadmap",
+    runsOn: "trace_id · model_drift · system_fingerprint",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <circle cx="4.5" cy="4.5" r="2.2" />
+        <circle cx="4.5" cy="13.5" r="2.2" />
+        <circle cx="13.5" cy="9" r="2.2" />
+        <path d="M6.4 5.6l5.2 2.6M6.4 12.4l5.2-2.6" />
+      </svg>
+    ),
+  },
+  {
+    name: "LLM-judge evaluations",
+    body: "A model judge re-scores responses for faithfulness, correctness and tone — running only on heuristically-flagged spans, so the bill stays near zero.",
+    tier: "Pro",
+    status: "Beta",
+    runsOn: "hallucination_flags · response",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 2l5.5 1.8v4.4c0 3.7-2.6 5.6-5.5 6.8-2.9-1.2-5.5-3.1-5.5-6.8V3.8L9 2z" />
+        <polyline points="6.6,8.6 8.3,10.3 11.6,6.9" />
+      </svg>
+    ),
+  },
+  {
+    name: "Semantic failure clustering",
+    body: "Refusals, errors and hallucinations grouped by meaning, not string match — 200 broken rows collapse into the five bugs actually behind them.",
+    tier: "Pro",
+    status: "Roadmap",
+    runsOn: "refusal · error_type · response",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" stroke="none">
+        <circle cx="5" cy="5.5" r="1.5" />
+        <circle cx="8.2" cy="3.6" r="1.5" />
+        <circle cx="6.4" cy="9" r="1.5" />
+        <circle cx="12.8" cy="12.6" r="1.5" />
+        <circle cx="10.6" cy="14.8" r="1.5" />
+        <circle cx="14.6" cy="9.6" r="1.5" />
+      </svg>
+    ),
+  },
+  {
+    name: "Auto-built eval suites",
+    body: "Your production traffic becomes your test suite. whyllm mines real spans into a golden regression set — no manual labelling, no synthetic data.",
+    tier: "Enterprise",
+    status: "Roadmap",
+    runsOn: "request · response · llm_judge",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3.5" y="3" width="11" height="12.5" rx="1.6" />
+        <path d="M6.3 7.2l1.2 1.2 2.3-2.4M6.3 11.4l1.2 1.2 2.3-2.4" />
+      </svg>
+    ),
+  },
+  {
+    name: "Prompt optimizer",
+    body: "Analyses every span for an endpoint and proposes a shorter, cheaper prompt that holds quality — then A/B-tests it inline through the proxy.",
+    tier: "Enterprise",
+    status: "Roadmap",
+    runsOn: "request.system · cost_usd · hallucination_score",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" stroke="none">
+        <path d="M8 1.6l1.5 4L13.6 7l-4.1 1.4L8 12.4 6.5 8.4 2.4 7l4.1-1.4z" />
+        <path d="M13.4 10.6l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z" />
+      </svg>
+    ),
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Plan comparison — grouped by category
 // ─────────────────────────────────────────────────────────────────────────────
 const PLAN_COLUMNS: { name: string; price: string; note: string; highlight?: boolean }[] = [
@@ -204,6 +303,17 @@ const PLAN_GROUPS: {
       { feature: "Prediction insights", values: [false, true, true] },
       { feature: "Budget enforcement (HTTP 429)", values: [false, true, true] },
       { feature: "Alerts & webhooks", values: [false, true, true] },
+    ],
+  },
+  {
+    group: "AI copilots",
+    rows: [
+      { feature: "LLM-judge evaluations", values: [false, true, true] },
+      { feature: "Ask your traces — natural-language search", values: [false, true, true] },
+      { feature: "Root-cause copilot", values: [false, true, true] },
+      { feature: "Semantic failure clustering", values: [false, true, true] },
+      { feature: "Auto-built eval suites", values: [false, false, true] },
+      { feature: "Prompt optimizer", values: [false, false, true] },
     ],
   },
   {
@@ -275,6 +385,53 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
         </ul>
       </div>
       <div className={flip ? "md:order-1" : ""}>{feature.visual}</div>
+    </div>
+  );
+}
+
+function CopilotCard({ c }: { c: Copilot }) {
+  const beta = c.status === "Beta";
+  const pro = c.tier === "Pro";
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 flex flex-col transition-colors duration-200 hover:border-white/[0.16]">
+      <div className="flex items-start justify-between mb-4">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "rgba(192,132,252,0.1)", color: "#C084FC" }}
+        >
+          {c.icon}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={
+              "text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border " +
+              (beta
+                ? "text-lime-400 border-lime-500/30 bg-lime-500/10"
+                : "text-zinc-500 border-white/10 bg-white/[0.03]")
+            }
+          >
+            {c.status}
+          </span>
+          <span
+            className={
+              "text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md border " +
+              (pro
+                ? "text-lime-400 border-lime-500/30 bg-lime-500/10"
+                : "text-sky-300 border-sky-400/30 bg-sky-400/10")
+            }
+          >
+            {c.tier}
+          </span>
+        </div>
+      </div>
+      <h3 className="text-base font-bold text-white mb-1.5">{c.name}</h3>
+      <p className="text-[13px] text-zinc-400 leading-relaxed flex-1">{c.body}</p>
+      <div className="mt-4 pt-3 border-t border-white/[0.05]">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">
+          Runs on
+        </span>
+        <div className="font-mono text-[11px] text-zinc-500 mt-1 break-words">{c.runsOn}</div>
+      </div>
     </div>
   );
 }
@@ -445,6 +602,38 @@ export default function WhatWeShowPage() {
         </div>
       </section>
 
+      {/* ── AI COPILOTS ───────────────────────────────────────────────────── */}
+      <section id="copilots" className="px-6 py-20 border-t border-white/[0.05]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-lime-500 text-sm font-semibold uppercase tracking-widest mb-3">
+              Premium · AI copilots
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight">
+              AI that works because nothing was thrown away.
+            </h2>
+            <p className="text-zinc-500 text-base mt-4 max-w-2xl mx-auto">
+              Sampled, summarised observability data can&apos;t power real AI
+              features — there&apos;s nothing for a model to read. whyllm keeps
+              every call verbatim, so these premium copilots reason over the
+              whole record. One is in beta today; the rest are on the roadmap.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {AI_COPILOTS.map((c) => (
+              <CopilotCard key={c.name} c={c} />
+            ))}
+          </div>
+
+          <p className="text-center text-[12px] text-zinc-600 mt-8">
+            Available on <span className="text-lime-400 font-semibold">Pro</span>{" "}
+            and <span className="text-sky-300 font-semibold">Enterprise</span> —
+            see the plan breakdown below.
+          </p>
+        </div>
+      </section>
+
       {/* ── PLAN COMPARISON ───────────────────────────────────────────────── */}
       <section id="plans" className="px-6 py-20 border-t border-white/[0.05]">
         <div className="max-w-4xl mx-auto">
@@ -457,7 +646,7 @@ export default function WhatWeShowPage() {
             </h2>
             <p className="text-zinc-500 text-base mt-4 max-w-xl mx-auto">
               Same proxy, same full capture on every plan. Higher tiers unlock
-              enforcement, intelligence, and scale.
+              enforcement, AI copilots, and scale.
             </p>
           </div>
 
