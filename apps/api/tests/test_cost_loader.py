@@ -6,9 +6,17 @@ from pathlib import Path
 
 import pytest
 
-# Resolve the monorepo root (4 levels up from this file: tests/ → api/ → apps/ → whyllm/)
-_MONOREPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(_MONOREPO_ROOT / "packages" / "cost-tables"))
+# The cost-tables package lives outside the API package (monorepo
+# packages/cost-tables/). This test is therefore monorepo-only and is
+# skipped when running inside the flattened container image.
+_parents = Path(__file__).resolve().parents
+_COST_TABLES = _parents[3] / "packages" / "cost-tables" if len(_parents) > 3 else None
+if _COST_TABLES is None or not (_COST_TABLES / "loader.py").exists():
+    pytest.skip(
+        "cost-tables package is monorepo-only (not in the container image)",
+        allow_module_level=True,
+    )
+sys.path.insert(0, str(_COST_TABLES))
 from loader import compute_cost, get_price, list_models, load_prices
 
 

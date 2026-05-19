@@ -68,11 +68,14 @@ shell-redis: ## Open redis-cli in the redis container
 
 # ---- Testing ------------------------------------------------
 
-test-api: ## Run the full pytest suite inside the API container
-	$(COMPOSE) exec $(API_SERVICE) pytest -v --tb=short
+test-api: ## Run the full pytest suite in the test container (needs `make up` first)
+	$(COMPOSE) --profile test build test
+	$(COMPOSE) --profile test run --rm test
 
 test-api-cov: ## Run tests with coverage report
-	$(COMPOSE) exec $(API_SERVICE) pytest --cov=whyllm_api --cov-report=term-missing
+	$(COMPOSE) --profile test build test
+	$(COMPOSE) --profile test run --rm test \
+		python -m pytest --cov=whyllm_api --cov-report=term-missing
 
 # Run tests locally without Docker (requires venv activated)
 test-api-local: ## Run pytest locally (requires venv)

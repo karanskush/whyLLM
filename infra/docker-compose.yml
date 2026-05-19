@@ -105,3 +105,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  # Test runner — built from the Dockerfile `test` stage (dev deps + suite).
+  # Not started by `make up`; `make test-api` runs it via the `test` profile.
+  test:
+    profiles: ["test"]
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+      target: test
+    networks:
+      - whyllm_network
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://whyllm:whyllm@postgres:5432/whyllm
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

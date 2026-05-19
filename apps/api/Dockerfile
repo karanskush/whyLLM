@@ -72,3 +72,33 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
 # Run migrations then start the server.
 # PORT is injected by Railway; falls back to 8000 for local Docker Compose.
 CMD ["sh", "-c", "alembic upgrade head && uvicorn whyllm_api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --loop uvloop --http h11 --access-log"]
+
+
+# ---- Stage 3: test image (build with --target test) ---------
+# Extends the runtime image with dev/test dependencies and the test suite.
+# Never used in production — `docker compose --profile test` builds this so
+# `make test-api` runs the real suite against the live Postgres/Redis.
+FROM runner AS test
+
+USER root
+
+# Test-only dependencies — deliberately kept out of the production image.
+# Versions are pinned to match pyproject.toml's [dev] extra: newer
+# pytest-asyncio (1.x) drops the event_loop fixture override the test
+# suite's conftest relies on, which breaks every async test.
+RUN pip install --no-cache-dir \
+        "pytest==8.3.4" \
+        "pytest-asyncio==0.24.0" \
+        "pytest-cov==6.0.0" \
+        "respx==0.21.1" \
+        "anyio[trio]==4.7.0" \
+        "psycopg2-binary==2.9.10"
+
+# The suite + its pytest config (testpaths / asyncio_mode live in pyproject.toml).
+COPY tests/ ./tests/
+COPY pyproject.toml ./
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+CMD ["python", "-m", "pytest", "-v", "--tb=short"]

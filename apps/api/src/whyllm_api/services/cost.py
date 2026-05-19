@@ -191,14 +191,28 @@ class CostEngine:
                 self._seed_from_json()
 
     def _seed_from_json(self) -> None:
-        """Emergency fallback: load prices from the bundled packages/cost-tables/prices.json."""
+        """Emergency fallback: load prices from a bundled prices.json.
+
+        Looks for the copy shipped inside the package first (``whyllm_api/data/``
+        — present in the Docker image), then falls back to the monorepo's
+        ``packages/cost-tables/`` for local development.
+        """
         try:
             import json
             from pathlib import Path
 
-            prices_file = Path(__file__).resolve().parents[5] / "packages" / "cost-tables" / "prices.json"
-            if not prices_file.exists():
-                log.warning("CostEngine: prices.json not found at %s", prices_file)
+            parents = Path(__file__).resolve().parents
+            candidates = [parents[1] / "data" / "prices.json"]
+            if len(parents) > 5:
+                candidates.append(
+                    parents[5] / "packages" / "cost-tables" / "prices.json"
+                )
+            prices_file = next((p for p in candidates if p.exists()), None)
+            if prices_file is None:
+                log.warning(
+                    "CostEngine: prices.json not found (looked in %s)",
+                    [str(c) for c in candidates],
+                )
                 return
 
             with prices_file.open("r", encoding="utf-8") as fh:

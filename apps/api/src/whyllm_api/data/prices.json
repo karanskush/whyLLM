@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "description": "LLM pricing per 1,000,000 tokens (USD). Cached = prompt cache read price.",
+    "updated": "2026-04-10",
+    "source": "provider pricing pages — verify before billing",
+    "unit": "USD per 1M tokens"
+  },
+  "openai": {
+    "gpt-5-mini": {
+      "input": 0.25,
+      "output": 2.00,
+      "cached": 0.025
+    },
+    "gpt-4o": {
+      "input": 2.50,
+      "output": 10.00,
+      "cached": 1.25
+    },
+    "gpt-4o-mini": {
+      "input": 0.15,
+      "output": 0.60,
+      "cached": 0.075
+    },
+    "o1": {
+      "input": 15.00,
+      "output": 60.00,
+      "cached": 7.50
+    },
+    "o3-mini": {
+      "input": 1.10,
+      "output": 4.40,
+      "cached": 0.55
+    }
+  },
+  "anthropic": {
+    "claude-opus-4-6": {
+      "input": 15.00,
+      "output": 75.00,
+      "cached": 1.50
+    },
+    "claude-sonnet-4-6": {
+      "input": 3.00,
+      "output": 15.00,
+      "cached": 0.30
+    },
+    "claude-haiku-4-5-20251001": {
+      "input": 0.80,
+      "output": 4.00,
+      "cached": 0.08
+    }
+  },
+  "google": {
+    "gemini-1.5-pro": {
+      "input": 1.25,
+      "output": 5.00,
+      "cached": 0.3125
+    },
+    "gemini-1.5-flash": {
+      "input": 0.075,
+      "output": 0.30,
+      "cached": 0.01875
+    }
+  }
+}
