@@ -151,58 +151,6 @@ function Terminal({ title = "terminal", lines }: { title?: string; lines: Termin
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Code block
-// ─────────────────────────────────────────────────────────────────────────────
-
-function CodeBlock({ code, lang }: { code: string; lang: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Tokenize: comments, keywords, strings
-  const tokenize = (src: string) =>
-    src
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/(#[^\n]*)/g, '<span style="color:#52525b">$1</span>')
-      .replace(/(\/\/[^\n]*)/g, '<span style="color:#52525b">$1</span>')
-      .replace(
-        /\b(import|from|export|const|let|var|async|await|function|return|if|else|new|class)\b/g,
-        '<span style="color:#a78bfa">$1</span>'
-      )
-      .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, '<span style="color:#fbbf24">$1</span>');
-
-  return (
-    <div className="rounded-xl overflow-hidden border border-white/10 bg-zinc-950">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06]">
-        <span className="text-[11px] text-zinc-500 font-mono">{lang}</span>
-        <button
-          onClick={copy}
-          className="text-[11px] text-zinc-500 hover:text-white transition-colors flex items-center gap-1.5"
-        >
-          {copied ? (
-            <span className="text-lime-400">✓ Copied!</span>
-          ) : (
-            "Copy"
-          )}
-        </button>
-      </div>
-      <div className="p-5 overflow-x-auto">
-        <pre
-          className="font-mono text-[13px] text-zinc-300 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: tokenize(code) }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Animated integration terminal
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -564,45 +512,12 @@ function DashboardMockup() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Data
-// ─────────────────────────────────────────────────────────────────────────────
-
-const PYTHON_CODE = `import whyllm          # ← add this one line
-from openai import OpenAI
-
-whyllm.init(api_key="lld_sk_...")   # ← and this
-
-client = OpenAI()   # nothing else changes
-
-response = client.chat.completions.create(
-    model="gpt-5.4",
-    messages=[{"role": "user", "content": prompt}]
-)
-# ✓ every call is now traced, costed, and scored`;
-
-const CLI_CODE = `# Or use zero-code mode — no file changes at all
-$ whyllm run python app.py`;
-
-const JS_CODE = `import { init } from '@whyllm/sdk'    // ← add this
-import OpenAI from 'openai'
-
-init({ apiKey: 'lld_sk_...' })         // ← and this
-
-const openai = new OpenAI()  // nothing else changes
-const response = await openai.chat.completions.create({
-  model: 'gpt-5.4',
-  messages: [{ role: 'user', content: prompt }]
-})
-// ✓ every call is now traced, costed, and scored`;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Integration methods data
+// Integration — one proxy, every provider
 // ─────────────────────────────────────────────────────────────────────────────
 
 type IntegrationMethod = {
   id: string;
   label: string;
-  badge: string;
   description: string;
   color: string;
   termTitle: string;
@@ -610,97 +525,74 @@ type IntegrationMethod = {
   steps: { text: string; code: string }[];
 };
 
+// whyllm is a single L7 proxy. There is exactly one integration — repoint your
+// base URL and add one header. The tabs below are the SAME integration shown
+// for each provider, not different ways in.
 const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
-    id: "sdk",
-    label: "Python SDK",
-    badge: "2 lines",
-    description: "Add two lines to your existing code. Everything else stays the same.",
+    id: "openai",
+    label: "OpenAI",
+    description: "The official OpenAI SDK — or any OpenAI-compatible client. Two fields change, nothing else.",
     color: "#84CC16",
-    termTitle: "bash",
+    termTitle: "python",
     steps: [
-      { text: "Install the SDK", code: "pip install whyllm" },
-      { text: "Add two lines", code: "whyllm.init(api_key=...)" },
-      { text: "Ship it", code: "Dashboard is live instantly" },
+      { text: "Point your base URL at whyllm", code: 'base_url = "https://proxy.whyllm.io/v1"' },
+      { text: "Pass your whyllm key as a header", code: "X-whyllm-Key: wl-prod_..." },
+      { text: "Ship it — your code never moves", code: "Every call traced, costed, scored" },
     ],
     lines: [
-      { text: "$ pip install whyllm", type: "cmd" },
-      { text: "Collecting whyllm...", type: "dim" },
-      { text: "✓ whyllm 0.4.2 installed", type: "success" },
+      { text: "from openai import OpenAI", type: "out" },
       { text: "", type: "dim" },
-      { text: "$ python app.py", type: "cmd" },
-      { text: "✓ whyllm connected (project: my-app)", type: "success" },
-      { text: "✓ Tracing 2 integrations: openai, anthropic", type: "success" },
-      { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
+      { text: "client = OpenAI(", type: "out" },
+      { text: '    base_url="https://proxy.whyllm.io/v1",   # ← the one change', type: "cmd" },
+      { text: '    default_headers={"X-whyllm-Key": "wl-prod_..."},', type: "cmd" },
+      { text: ")  # your OPENAI_API_KEY stays exactly where it is", type: "out" },
+      { text: "", type: "dim" },
+      { text: "✓ proxied · captured whole · costed · scored · predicted", type: "success" },
     ],
   },
   {
-    id: "cli",
-    label: "CLI Wrapper",
-    badge: "0 changes",
-    description: "Prefix your run command. Zero file modifications required.",
+    id: "azure",
+    label: "Azure OpenAI",
+    description: "Same integration for Azure deployments — only the endpoint field is named differently.",
     color: "#60A5FA",
-    termTitle: "bash",
+    termTitle: "python",
     steps: [
-      { text: "Install the CLI", code: "pip install whyllm" },
-      { text: "Wrap your command", code: "whyllm run python app.py" },
-      { text: "Ship it", code: "Zero file changes required" },
+      { text: "Point your Azure endpoint at whyllm", code: 'azure_endpoint = "https://proxy.whyllm.io"' },
+      { text: "Pass your whyllm key as a header", code: "X-whyllm-Key: wl-prod_..." },
+      { text: "Ship it — keys and version untouched", code: "Every call traced, costed, scored" },
     ],
     lines: [
-      { text: "$ pip install whyllm", type: "cmd" },
-      { text: "✓ whyllm 0.4.2 installed", type: "success" },
+      { text: "from openai import AzureOpenAI", type: "out" },
       { text: "", type: "dim" },
-      { text: "# Wrap your existing command — that's it", type: "comment" },
-      { text: "$ whyllm run python app.py", type: "cmd" },
-      { text: "✓ whyllm connected (project: my-app)", type: "success" },
-      { text: "✓ Auto-patched: openai, anthropic, google-genai, mistral", type: "success" },
-      { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
+      { text: "client = AzureOpenAI(", type: "out" },
+      { text: '    azure_endpoint="https://proxy.whyllm.io",   # ← the one change', type: "cmd" },
+      { text: '    default_headers={"X-whyllm-Key": "wl-prod_..."},', type: "cmd" },
+      { text: "    api_version=API_VERSION,   # unchanged", type: "out" },
+      { text: ")", type: "out" },
+      { text: "✓ proxied · captured whole · costed · scored · predicted", type: "success" },
     ],
   },
   {
-    id: "env",
-    label: "Env Variable",
-    badge: "no code",
-    description: "Set two env vars. No imports, no SDK, no file changes.",
+    id: "anthropic",
+    label: "Anthropic",
+    description: "The proxy is language-agnostic — the very same two fields, here in TypeScript.",
     color: "#C084FC",
-    termTitle: "bash",
+    termTitle: "typescript",
     steps: [
-      { text: "Set your API key", code: 'export WHYLLM_API_KEY="lld_sk_..."' },
-      { text: "Set your project", code: 'export WHYLLM_PROJECT="my-app"' },
-      { text: "Run unchanged", code: "python app.py — auto-instrumented" },
+      { text: "Point your base URL at whyllm", code: 'baseURL: "https://proxy.whyllm.io"' },
+      { text: "Pass your whyllm key as a header", code: "X-whyllm-Key: wl-prod_..." },
+      { text: "Ship it — same two fields, any SDK", code: "Every call traced, costed, scored" },
     ],
     lines: [
-      { text: "# Add to .env or shell profile", type: "comment" },
-      { text: 'export WHYLLM_API_KEY="lld_sk_..."', type: "cmd" },
-      { text: 'export WHYLLM_PROJECT="my-app"', type: "cmd" },
+      { text: "import Anthropic from '@anthropic-ai/sdk'", type: "out" },
       { text: "", type: "dim" },
-      { text: "$ python app.py   # completely unchanged", type: "cmd" },
-      { text: "✓ whyllm auto-instrumented (via env)", type: "success" },
-      { text: "✓ Tracing openai, anthropic", type: "success" },
-      { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
-    ],
-  },
-  {
-    id: "otel",
-    label: "OpenTelemetry",
-    badge: "1 endpoint",
-    description: "Already on OTel? Point your exporter at whyllm and you're done.",
-    color: "#FB923C",
-    termTitle: "opentelemetry",
-    steps: [
-      { text: "Set OTLP endpoint", code: "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.whyllm.io" },
-      { text: "Set auth header", code: "Authorization=Bearer lld_sk_..." },
-      { text: "Ship it", code: "Spans received instantly" },
-    ],
-    lines: [
-      { text: "# Update your OTLP exporter — nothing else", type: "comment" },
-      { text: "export OTEL_EXPORTER_OTLP_ENDPOINT=\\", type: "cmd" },
-      { text: '  "https://otel.whyllm.io"', type: "out" },
-      { text: "export OTEL_EXPORTER_OTLP_HEADERS=\\", type: "cmd" },
-      { text: '  "Authorization=Bearer lld_sk_..."', type: "out" },
+      { text: "const client = new Anthropic({", type: "out" },
+      { text: '  baseURL: "https://proxy.whyllm.io",   // ← the one change', type: "cmd" },
+      { text: "  defaultHeaders: { 'X-whyllm-Key': 'wl-prod_...' },", type: "cmd" },
+      { text: "})  // your ANTHROPIC_API_KEY is passed straight through", type: "out" },
       { text: "", type: "dim" },
-      { text: "✓ OTLP spans received (project: my-app)", type: "success" },
-      { text: "→ Dashboard live at app.whyllm.io/dashboard", type: "info" },
+      { text: "✓ proxied · captured whole · costed · scored · predicted", type: "success" },
     ],
   },
 ];
@@ -754,7 +646,6 @@ function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState<"python" | "js">("python");
   const [integrationIdx, setIntegrationIdx] = useState(0);
 
   return (
@@ -807,8 +698,9 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-zinc-400 text-base md:text-lg leading-relaxed max-w-xl mx-auto">
-              Real-time visibility into every LLM call, every why is answered
-              without touching a single line of your existing code.
+              Real-time visibility into every LLM call. Repoint one base URL
+              through the whyllm proxy — your code, your keys, your SDK never
+              change.
             </p>
           </div>
 
@@ -848,9 +740,9 @@ export default function LandingPage() {
               className="font-black leading-none tracking-tight"
               style={{ fontSize: "1.8rem", color: "#84CC16", textShadow: "0 0 28px rgba(132,204,22,0.45)", fontVariantNumeric: "tabular-nums" }}
             >
-              0<span style={{ fontSize: "1.25rem" }} className="ml-1">changes</span>
+              1<span style={{ fontSize: "1.25rem" }} className="ml-1">line</span>
             </div>
-            <div className="text-[10px] text-zinc-500 mt-2 uppercase tracking-widest">required in most cases</div>
+            <div className="text-[10px] text-zinc-500 mt-2 uppercase tracking-widest">to repoint your base URL</div>
           </div>
 
           <div className="h-8 w-px bg-gradient-to-b from-transparent via-zinc-700 to-transparent flex-shrink-0" />
@@ -896,7 +788,7 @@ export default function LandingPage() {
                 Integration
               </p>
               <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">
-                Pick your path.{" "}
+                One line in.{" "}
                 <span
                   style={{
                     background: "linear-gradient(90deg, #84CC16, #a3e635)",
@@ -905,12 +797,15 @@ export default function LandingPage() {
                     backgroundClip: "text",
                   }}
                 >
-                  Working in 2 minutes.
+                  Everything out.
                 </span>
               </h2>
               <p className="text-zinc-500 text-base leading-relaxed mb-8">
-                Four ways in — from two lines of code to zero file changes.
-                Every call captured automatically from the first request.
+                whyllm runs as an L7 proxy in front of your model provider.
+                Repoint your base URL, add one header — your code, your keys,
+                your SDK all stay exactly as they are. Every request flows
+                through and is captured whole: prompt, response, every header,
+                exact timing.
               </p>
 
               {/* Steps — sync with active terminal method */}
@@ -1023,11 +918,11 @@ export default function LandingPage() {
                   tag: "Hallucination",
                 },
                 {
-                  pain: "You tried three observability tools. Each took days and half your prompts weren't captured.",
+                  pain: "You tried three observability tools. Each took days of SDK migration and half your prompts still weren't captured.",
                   solution: [
-                    "`whyllm run app.py` — monkey-patches openai/anthropic at import time",
-                    "Zero app code changes, zero proxy in the critical path",
-                    "100% capture rate from request #1",
+                    "One base-URL change — whyllm sits inline as an L7 proxy",
+                    "Captures raw wire data: prompt, response, every header, exact timing",
+                    "100% capture rate from request #1 — nothing to instrument",
                   ],
                   tag: "Setup tax",
                 },
@@ -1043,7 +938,7 @@ export default function LandingPage() {
                 {
                   pain: "Which feature is burning $3k/month? You have spreadsheets, guesses, and an angry CFO.",
                   solution: [
-                    "Tag calls with feature, user_id, session via SDK context headers",
+                    "Tag calls with feature, user_id, session via request headers",
                     "Filter spend by any dimension in the dashboard",
                     "/summarize = $0.0034/call × 8,200/day — know it before CFO asks",
                   ],
@@ -1444,7 +1339,7 @@ export default function LandingPage() {
                   Get started free →
                 </Link>
                 <div className="font-mono text-sm text-zinc-600 bg-zinc-900 px-4 py-3 rounded-xl border border-white/[0.06]">
-                  pip install whyllm
+                  base_url → proxy.whyllm.io
                 </div>
               </div>
             </div>
