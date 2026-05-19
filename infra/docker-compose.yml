@@ -48,6 +48,9 @@ services:
     build:
       context: ../apps/api
       dockerfile: Dockerfile
+      # Pin the runtime stage — the Dockerfile's final stage is `test`, and an
+      # untargeted build defaults to it, which would run pytest instead of uvicorn.
+      target: runner
     restart: unless-stopped
     networks:
       - whyllm_network
@@ -91,8 +94,13 @@ services:
     build:
       context: ../apps/api
       dockerfile: Dockerfile
+      target: runner
     command: python -m whyllm_api.worker
     restart: unless-stopped
+    # The worker is not an HTTP server, so the Dockerfile's curl healthcheck
+    # would always report "unhealthy" — disable it for this service.
+    healthcheck:
+      disable: true
     networks:
       - whyllm_network
     env_file:

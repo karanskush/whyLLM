@@ -98,6 +98,11 @@ def _mock_session_factory() -> MagicMock:
 def _mock_cost_engine(return_value: Any = Decimal("0.00075")) -> MagicMock:
     engine = MagicMock()
     engine.estimate = MagicMock(return_value=return_value)
+    # worker._pipeline canonicalizes (provider, model) before storage and
+    # unpacks the result as a 2-tuple — mirror the real CostEngine signature.
+    engine.canonicalize = MagicMock(
+        side_effect=lambda provider, model: (provider.lower(), model.lower())
+    )
     engine.start = AsyncMock()
     engine.stop = AsyncMock()
     engine.model_count = 9

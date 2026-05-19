@@ -182,8 +182,17 @@ async def test_updated_at_triggers_all_tables(engine: AsyncEngine) -> None:
 
 @pytest.mark.asyncio
 async def test_model_pricing_seed_count(engine: AsyncEngine) -> None:
-    count = await _scalar(engine, "SELECT COUNT(*) FROM model_pricing")
-    assert count == 9, f"Expected 9 seed rows, found {count}"
+    """Migration 0002 seeds exactly 9 rows, all dated 2026-04-10.
+
+    Counts only that snapshot — not the whole table — so the test stays valid
+    when future price migrations append rows or runtime inserts add entries.
+    """
+    count = await _scalar(
+        engine,
+        "SELECT COUNT(*) FROM model_pricing "
+        "WHERE effective_from = '2026-04-10 00:00:00+00'",
+    )
+    assert count == 9, f"Expected 9 rows from the 0002 seed migration, found {count}"
 
 
 @pytest.mark.asyncio

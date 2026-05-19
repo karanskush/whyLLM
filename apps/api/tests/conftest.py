@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import sys
 
 import pytest
@@ -30,6 +31,19 @@ os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://whyllm:whyllm@localh
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-min-32-chars-long!!")
 os.environ.setdefault("ENVIRONMENT", "development")
+
+# ── Isolate the suite onto a dedicated Redis logical DB ──────────────────────
+# `make test-api` runs after `make up`, so a live `worker` container is BRPOP-ing
+# `ingest_queue` on db 0. If the suite shared that DB, the worker would drain
+# spans the ingest tests enqueue before they could assert on the queue. Force
+# the suite onto db 15 — the app-under-test, the redis_client fixture and the
+# in-process worker tests all read REDIS_URL, so they stay mutually consistent
+# while staying invisible to the real worker.
+_redis_url = os.environ["REDIS_URL"]
+if re.search(r"/\d+$", _redis_url):
+    os.environ["REDIS_URL"] = re.sub(r"/\d+$", "/15", _redis_url)
+else:
+    os.environ["REDIS_URL"] = _redis_url.rstrip("/") + "/15"
 
 # Bust the lru_cache on get_settings if it was already called
 try:
